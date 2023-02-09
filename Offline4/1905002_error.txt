@@ -1,0 +1,5 @@
+Line# 6: Type mismatch for assignment operator 
+Line# 16: Type mismatch for assignment operator 
+Line# 18: Invalid type for increment/decrement operator
+Line# 26: Type mismatch for assignment operator 
+Line# 31: Type mismatch for assignment operator 
