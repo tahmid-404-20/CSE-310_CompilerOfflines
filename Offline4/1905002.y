@@ -21,6 +21,7 @@ extern int error_count;
 long lastSyntaxErrorLine;
 int syntaxErrorCount = 0;
 long long tempFileLineCount = 0;
+long long labelCount = 0;
 
 
 FILE *errorout,*logout,*ptout,*fp, *codeout, *tempout;
@@ -42,6 +43,8 @@ string funcReturnType;
 int funcParameterCount = 0;
 int stackOffset = 0;
 
+// for code generation label fixing
+map <long, string> labelMap;
 
 SymbolInfo *compRef;
 
@@ -82,6 +85,27 @@ string getVarRightSide(SymbolInfo *varPointer) {
 
     return varName;
   }
+}
+
+string insertIntoLabelMap(vector<long> &labelList, string label) {
+	for(int i=0;i<labelList.size();i++) {
+		labelMap[labelList[i]] = label;
+	}
+}
+
+string getRelopJumpStatements(string relString) {
+	if(relString == "<")
+		return "JL";
+	else if(relString == ">")
+		return "JG";
+	else if(relString == "<=")
+		return "JLE";
+	else if(relString == ">=")
+		return "JGE";
+	else if(relString == "==")
+		return "JE";
+	else if(relString == "!=")
+		return "JNE";
 }
 
 void insertFunctionDefinition(SymbolInfo *type_specifier, SymbolInfo *funcName,
@@ -162,13 +186,13 @@ void insertFunctionDefinition(SymbolInfo *type_specifier, SymbolInfo *funcName,
 }
 
 void printFuncDefEntryCommands(SymbolInfo *funcName) {
-  fprintf(tempout, "%s PROC\n", funcName->getName().c_str());
+  writeIntoTempFile(funcName->getName() + " PROC");
   if (funcName->getName() == "main") {
-    fprintf(tempout, "\tMOV AX, @DATA\n");
-    fprintf(tempout, "\tMOV DS, AX\n");
+	writeIntoTempFile("\tMOV AX, @DATA");
+	writeIntoTempFile("\tMOV DS, AX");
   }
 
-  fprintf(tempout, "%s\n", functionEntryString.c_str());
+  writeIntoTempFile(functionEntryString);
 }
 
 string castType(SymbolInfo *leftSymbol, SymbolInfo *rightSymbol) {
@@ -193,6 +217,7 @@ string castType(SymbolInfo *leftSymbol, SymbolInfo *rightSymbol) {
 
 %token<symbolInfo> IF ELSE FOR WHILE DO BREAK INT CHAR FLOAT DOUBLE VOID RETURN SWITCH CASE DEFAULT CONTINUE CONST_INT CONST_FLOAT CONST_CHAR ID NOT LOGICOP RELOP ADDOP MULOP INCOP DECOP ASSIGNOP LPAREN RPAREN LCURL RCURL LSQUARE RSQUARE COMMA SEMICOLON BITOP SINGLE_LINE_STRING MULTI_LINE_STRING LOWER_THAN_ELSE PRINTLN
 %type<symbolInfo> start program unit func_declaration func_definition parameter_list compound_statement var_declaration type_specifier declaration_list statements statement expression_statement variable expression logic_expression rel_expression simple_expression term unary_expression factor argument_list arguments LCURL_
+%type<symbolInfo> Marker
 
 %destructor { clearMemSyntaxTree($$);  } <symbolInfo>
 
@@ -350,11 +375,13 @@ func_definition : type_specifier ID LPAREN parameter_list RPAREN {insertFunction
 			$$->addChild($5);
 			$$->addChild(compRef);	
 
-			fprintf(tempout, "\tADD SP, %d\n", stackOffset);
-			fprintf(tempout, "\tPOP BP\n");
-			if($2->getName() == "main"){fprintf(tempout, "\tMOV AX,4CH\n\tINT 21H\n");}
-			fprintf(tempout, "%s ENDP\n", $2->getName().c_str());
-			
+			writeIntoTempFile("\tADD SP, " + to_string(stackOffset));
+			writeIntoTempFile("\tPOP BP");
+			if($2->getName() == "main"){
+				writeIntoTempFile("\tMOV AX,4CH");
+				writeIntoTempFile("\tINT 21H");					
+			}
+			writeIntoTempFile($2->getName() + " ENDP");			
 
 }
 		| type_specifier ID LPAREN RPAREN {insertFunctionDefinition($1,$2); printFuncDefEntryCommands($2);stackOffset=0;} compound_statement {
@@ -368,10 +395,13 @@ func_definition : type_specifier ID LPAREN parameter_list RPAREN {insertFunction
 			$$->addChild($4);
 			$$->addChild(compRef);
 
-			fprintf(tempout, "\tADD SP, %d\n", stackOffset);
-			fprintf(tempout, "\tPOP BP\n");
-			if($2->getName() == "main"){fprintf(tempout, "\tMOV AX,4CH\n\tINT 21H\n");}
-			fprintf(tempout, "%s ENDP\n", $2->getName().c_str());
+			writeIntoTempFile("\tADD SP, " + to_string(stackOffset));
+			writeIntoTempFile("\tPOP BP");
+			if($2->getName() == "main"){
+				writeIntoTempFile("\tMOV AX,4CH");
+				writeIntoTempFile("\tINT 21H");					
+			}
+			writeIntoTempFile($2->getName() + " ENDP");	
 		}
 		| type_specifier ID LPAREN error RPAREN compound_statement {
 			fprintf(logout,"Error at line no %d : Syntax Error\n", lastSyntaxErrorLine);
@@ -564,7 +594,7 @@ var_declaration : type_specifier declaration_list SEMICOLON {
 				}
 
 				if(st.getCurrentScopeTableId() != 1) {
-					fprintf(tempout, "\tSUB SP, %d\n", stackOffset);
+					writeIntoTempFile("\tSUB SP, " +  to_string(stackOffset));
 				}
 			}
 		}
@@ -688,7 +718,14 @@ statements : statement {
 
 	   }
 	   ;
-	   
+
+Marker: {
+		$$ = new SymbolInfo("marker", "marker");
+		$$->setLabel("L" + to_string(++labelCount));
+		writeIntoTempFile("L" + to_string(labelCount));
+
+	}
+
 statement : var_declaration {
 			fprintf(logout,"statement : var_declaration \n");
 			$$ = new SymbolInfo("var_declaration", "statement");
@@ -1012,7 +1049,7 @@ expression : logic_expression {
 			$$->setConstantIntValue($1->getConstantIntValue());
 			$$->setConstantFloatValue($1->getConstantFloatValue());
 		}	
-	   | variable ASSIGNOP logic_expression {
+	   | variable ASSIGNOP logic_expression	{
 			fprintf(logout,"expression : variable ASSIGNOP logic_expression \n");
 			$$ = new SymbolInfo("variable ASSIGNOP logic_expression", "expression");
 			$$->setStartLine($1->getStartLine());
@@ -1021,37 +1058,32 @@ expression : logic_expression {
 			$$->addChild($2);
 			$$->addChild($3);
 
-			if($1->getTypeSpecifier() != "error" && $3->getTypeSpecifier() != "error") {
-				if( $3->getTypeSpecifier() == "VOID" ){
-				fprintf(errorout, "Line# %d: Void cannot be used in expression \n", $1->getStartLine());
-				syntaxErrorCount++;
-				$$->setTypeSpecifier("error");
-				} else if($1->getIsArray() == true && $1->getIsArrayWithoutIndex() == true) {
-					fprintf(errorout, "Line# %d: Assignment to expression with array type\n", $1->getStartLine());
-					syntaxErrorCount++;
-					$$->setTypeSpecifier("error");
-				} else if( $1->getTypeSpecifier()== "FLOAT" && $3->getTypeSpecifier() == "INT" ){
-				// okay, i don't know how type cast occurs
-				} else if( $1->getTypeSpecifier()== "INT" && $3->getTypeSpecifier() == "FLOAT" ){
-					fprintf(errorout, "Line# %d: Warning: possible loss of data in assignment of FLOAT to INT\n", $1->getStartLine());
-					syntaxErrorCount++;
-					$$->setTypeSpecifier("error");
-				} else if($1->getTypeSpecifier()!=$3->getTypeSpecifier() && !($1->getTypeSpecifier() =="error" || $3->getTypeSpecifier() =="error")){
-					fprintf(errorout, "Line# %d: Type mismatch for assignment operator \n", $1->getStartLine());
-					syntaxErrorCount++;
-					$$->setTypeSpecifier("error");
-				} else {
-					$$->setTypeSpecifier(castType($1,$3));
-				}
-			} else {
-				$$->setTypeSpecifier("error");
-			}
+			// if($1->getTypeSpecifier() != "error" && $3->getTypeSpecifier() != "error") {
+			// 	if( $3->getTypeSpecifier() == "VOID" ){
+			// 	fprintf(errorout, "Line# %d: Void cannot be used in expression \n", $1->getStartLine());
+			// 	syntaxErrorCount++;
+			// 	$$->setTypeSpecifier("error");
+			// 	} else if($1->getIsArray() == true && $1->getIsArrayWithoutIndex() == true) {
+			// 		fprintf(errorout, "Line# %d: Assignment to expression with array type\n", $1->getStartLine());
+			// 		syntaxErrorCount++;
+			// 		$$->setTypeSpecifier("error");
+			// 	} else if( $1->getTypeSpecifier()== "FLOAT" && $3->getTypeSpecifier() == "INT" ){
+			// 	// okay, i don't know how type cast occurs
+			// 	} else if( $1->getTypeSpecifier()== "INT" && $3->getTypeSpecifier() == "FLOAT" ){
+			// 		fprintf(errorout, "Line# %d: Warning: possible loss of data in assignment of FLOAT to INT\n", $1->getStartLine());
+			// 		syntaxErrorCount++;
+			// 		$$->setTypeSpecifier("error");
+			// 	} else if($1->getTypeSpecifier()!=$3->getTypeSpecifier() && !($1->getTypeSpecifier() =="error" || $3->getTypeSpecifier() =="error")){
+			// 		fprintf(errorout, "Line# %d: Type mismatch for assignment operator \n", $1->getStartLine());
+			// 		syntaxErrorCount++;
+			// 		$$->setTypeSpecifier("error");
+			// 	} else {
+			// 		$$->setTypeSpecifier(castType($1,$3));
+			// 	}
+			// } else {
+			// 	$$->setTypeSpecifier("error");
+			// }
 			
-
-			// icg code
-			writeIntoTempFile("\tPOP BX");  // this is the logic exp, value to be assigned
-
-			string varName = getVarRightSide($1);
 			// if(!$1->getIsArray()) {
 			// 	if($1->getIsGlobalVariable()) {
 			// 		varName = $1->getVarName();
@@ -1072,11 +1104,46 @@ expression : logic_expression {
 			// 		varName = "[SI]";
 			// 	}	
 			// }
+
+			// icg code
+			if($3->getIsBoolean()) {
+				string label1 = "L" + to_string(++labelCount);
+				insertIntoLabelMap($3->getTrueList(), label1);  // backpathing
+				writeIntoTempFile(label1 + ":");
+				writeIntoTempFile("\tMOV AX, 1");
+				
+				string jumpLabel = "L" + to_string(++labelCount);
+				writeIntoTempFile("\tJMP " + jumpLabel);
+
+				
+				string label2 = "L" + to_string(++labelCount);
+				// insertIntoLabelMap(fList, label2);  // I have no idea why this generates segmentation fault
+				vector<long> fList = $3->getFalseList();
+				for(int i=0;i<fList.size();i++) {
+					labelMap[fList[i]] = label2;
+				}
+
+				writeIntoTempFile(label2 + ":");
+				writeIntoTempFile("\tMOV AX, 0");
+
+				writeIntoTempFile(jumpLabel + ":");
+
+				string varName = getVarRightSide($1);
+				writeIntoTempFile("\tMOV " + varName + ", AX");
+				writeIntoTempFile("\tPUSH AX");
+				
+
+			} else {
+				writeIntoTempFile("\tPOP BX");  // this is the logic exp when no boolean as for boolean, we don't push values, value to be assigned
+
+				string varName = getVarRightSide($1);
+				
+				writeIntoTempFile("; line No " + to_string($1->getStartLine()));
+				writeIntoTempFile("\tMOV " + varName + ", BX");
+				writeIntoTempFile("\tMOV AX, " + varName);
+				writeIntoTempFile("\tPUSH AX");  // supports a = b = c type of assignment
+			}
 			
-			writeIntoTempFile("; line No " + to_string($1->getStartLine()));
-			writeIntoTempFile("\tMOV " + varName + ", BX");
-			writeIntoTempFile("\tMOV AX, " + varName);
-			writeIntoTempFile("\tPUSH AX");  // supports a = b = c type of assignment
 	   }	
 	   ;
 			
@@ -1094,8 +1161,16 @@ logic_expression : rel_expression {
 			$$->setIsFromConstant($1->getIsFromConstant());
 			$$->setConstantIntValue($1->getConstantIntValue());
 			$$->setConstantFloatValue($1->getConstantFloatValue());
+
+			$$->setIsBoolean($1->getIsBoolean());
+  			$$->setTrueList($1->getTrueList());
+  			$$->setFalseList($1->getFalseList());
+  			$$->setNextList($1->getNextList());
+			cout << "logic_expression : rel_expression " << endl;
+			$1->getFalseList();
+			cout << "logic_expression : rel_expression 222" << endl;
 		}		
-		 | rel_expression LOGICOP rel_expression {
+		 | rel_expression LOGICOP Marker rel_expression {
 			fprintf(logout,"logic_expression : rel_expression LOGICOP rel_expression \n");
 			$$ = new SymbolInfo("rel_expression LOGICOP rel_expression", "logic_expression");
 			$$->setStartLine($1->getStartLine());
@@ -1103,22 +1178,36 @@ logic_expression : rel_expression {
 			$$->addChild($1);
 			$$->addChild($2);
 			$$->addChild($3);
-			
-			$$->setTypeSpecifier(castType($1,$3));
-			if($$->getTypeSpecifier() != "error") {
-				if($$->getTypeSpecifier() == "VOID") {
-				fprintf(errorout, "Line# %d: Void cannot be used in expression \n", $1->getStartLine());
-				syntaxErrorCount++;
-				$$->setTypeSpecifier("error");
-				} else {
-					if($$->getTypeSpecifier() != "error") {
-						$$->setTypeSpecifier("INT");
-					}
-				}
-			} else {
-				$$->setTypeSpecifier("error");
-			}
-			
+
+
+			$$->setIsBoolean(true);
+			// $$->setTypeSpecifier(castType($1,$3));
+			// if($$->getTypeSpecifier() != "error") {
+			// 	if($$->getTypeSpecifier() == "VOID") {
+			// 	fprintf(errorout, "Line# %d: Void cannot be used in expression \n", $1->getStartLine());
+			// 	syntaxErrorCount++;
+			// 	$$->setTypeSpecifier("error");
+			// 	} else {
+			// 		if($$->getTypeSpecifier() != "error") {
+			// 			$$->setTypeSpecifier("INT");
+			// 		}
+			// 	}
+			// } else {
+			// 	$$->setTypeSpecifier("error");
+			// }
+
+			// icg code
+			if($2->getName() == "&&") {
+				insertIntoLabelMap($1->getTrueList(), $3->getLabel()); // backpatching
+				$$->setTrueList($4->getTrueList());
+				$$->setFalseList($1->getFalseList());
+				$$->mergeFalseList($4->getFalseList());
+			} else{
+				insertIntoLabelMap($1->getTrueList(), $3->getLabel());
+				$$->setFalseList($4->getFalseList());
+				$$->setTrueList($1->getTrueList());
+				$$->mergeTrueList($4->getTrueList());
+			}			
 		 }	
 		 ;
 			
@@ -1146,21 +1235,32 @@ rel_expression	: simple_expression {
 			$$->addChild($2);
 			$$->addChild($3);
 
-			$$->setTypeSpecifier(castType($1,$3));
-			if($$->getTypeSpecifier() != "error") {
-				if($$->getTypeSpecifier() == "VOID") {
-				fprintf(errorout, "Line# %d: Void cannot be used in expression \n", $1->getStartLine());
-				syntaxErrorCount++;
-				$$->setTypeSpecifier("error");
-				} else {
-					if($$->getTypeSpecifier() != "error") {
-						$$->setTypeSpecifier("INT");
-					}
-				}	
-			} else {
-				$$->setTypeSpecifier("error");
-			}
+			$$->setIsBoolean(true);
+			// $$->setTypeSpecifier(castType($1,$3));
+			// if($$->getTypeSpecifier() != "error") {
+			// 	if($$->getTypeSpecifier() == "VOID") {
+			// 	fprintf(errorout, "Line# %d: Void cannot be used in expression \n", $1->getStartLine());
+			// 	syntaxErrorCount++;
+			// 	$$->setTypeSpecifier("error");
+			// 	} else {
+			// 		if($$->getTypeSpecifier() != "error") {
+			// 			$$->setTypeSpecifier("INT");
+			// 		}
+			// 	}	
+			// } else {
+			// 	$$->setTypeSpecifier("error");
+			// }
+
+			writeIntoTempFile("; line No " + to_string($1->getStartLine()));
+			writeIntoTempFile("\tPOP BX");
+			writeIntoTempFile("\tPOP AX");
+			writeIntoTempFile("\tCMP AX, BX");
+			writeIntoTempFile("\t" + getRelopJumpStatements($2->getName()) + " ");
+			$$->addTrueList(tempFileLineCount);
+			writeIntoTempFile("\tJMP ");
 			
+			$$->addFalseList(tempFileLineCount);
+			cout << "Added to false list" << endl;			
 		}
 		;
 				
@@ -1631,20 +1731,21 @@ int main(int argc,char *argv[])
 	fclose(codeout);
 	fclose(tempout);
 
-	FILE *temp, *code;
-	temp = fopen("1905002_tempCode.txt", "r");
-	code = fopen("1905002_code.asm", "a");
+	ifstream temp; 
+	ofstream code;
+	
+	temp.open("1905002_tempCode.txt");
+	code.open("1905002_code.asm", ios::app);
 		
 	// append temp.txt to code.txt
-	char ch;
-	while((ch = fgetc(temp)) != EOF) {
-		fputc(ch, code);
-	}
+	string line;
+  	int currentLineNo = 0;
+  	while (getline(temp, line)) {
+		currentLineNo++;
+		code << line << labelMap[currentLineNo-1] << endl;
+  	}
 
-	fprintf(code, printFunctionsFromSir.c_str());
-	fclose(code);
-	fclose(temp);
-
+	code << printFunctionsFromSir << endl;
 	// setting the global variable to NULL
 	compRef = NULL;
 	return 0;

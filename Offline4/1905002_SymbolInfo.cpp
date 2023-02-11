@@ -19,6 +19,14 @@ class SymbolInfo {
   bool isFromConstant;
   bool isArrayWithoutIndex;
 
+  // necessary for icg labeling and x = a< b
+  bool isBoolean;
+  string label;
+  // necessary for icg labeling
+  vector<long> trueList;
+  vector<long> falseList;
+  vector<long> nextList;
+
   int arraySize;
   string constantIntValue;
   string constantFloatValue;
@@ -56,6 +64,7 @@ class SymbolInfo {
     this->isFromConstant = false;
     this->isArrayWithoutIndex = false;
     this->isGlobalVariable = false;
+    this->isBoolean = false;
     this->next = NULL;
   }
 
@@ -91,12 +100,6 @@ public:
   // destructor
   ~SymbolInfo() {
     this->next = NULL;
-    // free childList
-    // for (int i = 0; i < childList.size(); i++) {
-    //   // if (childList[i] != NULL)
-    //   delete childList[i];
-    // }
-
     childList.clear();
   }
 
@@ -120,6 +123,20 @@ public:
 
   void addChild(SymbolInfo *child) { childList.push_back(child); }
 
+  // icg dedicated adders
+  void addTrueList(long index) { trueList.push_back(index); }
+  void addFalseList(long index) { falseList.push_back(index); }
+  void addNextList(long index) { nextList.push_back(index); }
+  void mergeTrueList(vector<long> &list) {
+    trueList.insert(trueList.end(), list.begin(), list.end());
+  }
+  void mergeFalseList(vector<long> &list) {
+    falseList.insert(falseList.end(), list.begin(), list.end());
+  }
+  void mergeNextList(vector<long> &list) {
+    nextList.insert(nextList.end(), list.begin(), list.end());
+  }
+
   // getters
   const string &getName() { return name; }
   const string &getType() { return type; }
@@ -131,6 +148,11 @@ public:
 
   // icg dedicated getters
   string &getVarName() { return varName; }
+  bool getIsBoolean() { return isBoolean; }
+  string &getLabel() { return label; }
+  vector<long> &getTrueList() { return trueList; }
+  vector<long> &getFalseList() { return falseList; }
+  vector<long> &getNextList() { return nextList; }
 
   // flag getters
   bool getIsGlobalVariable() { return isGlobalVariable; }
@@ -183,6 +205,11 @@ public:
 
   // icg dedicated setters
   void setVarName(const string &varName) { this->varName = varName; }
+  void setIsBoolean(bool isBoolean) { this->isBoolean = isBoolean; }
+  void setTrueList(vector<long> &trueList) { this->trueList = trueList; }
+  void setLabel(const string &label) { this->label = label; }
+  void setFalseList(vector<long> &falseList) { this->falseList = falseList; }
+  void setNextList(vector<long> &nextList) { this->nextList = nextList; }
 
   // flag setters
   void setIsGlobalVariable(bool isGlobalVariable) {
