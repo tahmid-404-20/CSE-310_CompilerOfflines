@@ -21,6 +21,8 @@ class SymbolInfo {
 
   // necessary for icg labeling and x = a< b
   bool isBoolean;
+  bool isRelational;
+
   string label;
   // necessary for icg labeling
   vector<long> trueList;
@@ -65,6 +67,7 @@ class SymbolInfo {
     this->isArrayWithoutIndex = false;
     this->isGlobalVariable = false;
     this->isBoolean = false;
+    this->isRelational = false;
     this->next = NULL;
   }
 
@@ -149,6 +152,7 @@ public:
   // icg dedicated getters
   string &getVarName() { return varName; }
   bool getIsBoolean() { return isBoolean; }
+  bool getIsRelational() { return isRelational; }
   string &getLabel() { return label; }
   vector<long> &getTrueList() { return trueList; }
   vector<long> &getFalseList() { return falseList; }
@@ -206,6 +210,7 @@ public:
   // icg dedicated setters
   void setVarName(const string &varName) { this->varName = varName; }
   void setIsBoolean(bool isBoolean) { this->isBoolean = isBoolean; }
+  void setIsRelational(bool isRelational) { this->isRelational = isRelational; }
   void setTrueList(vector<long> &trueList) { this->trueList = trueList; }
   void setLabel(const string &label) { this->label = label; }
   void setFalseList(vector<long> &falseList) { this->falseList = falseList; }

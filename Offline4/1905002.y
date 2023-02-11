@@ -47,6 +47,10 @@ int stackOffset = 0;
 map <long, string> labelMap;
 
 SymbolInfo *compRef;
+SymbolInfo *relExp2;
+vector<long> relExp1TrueList;
+vector<long> relExp1FalseList;
+
 
 void yyerror(char *s)
 {
@@ -91,6 +95,24 @@ string insertIntoLabelMap(vector<long> &labelList, string label) {
 	for(int i=0;i<labelList.size();i++) {
 		labelMap[labelList[i]] = label;
 	}
+}
+
+void determineJumpForLogicalOp(SymbolInfo *relExp1) {	
+	relExp1TrueList.clear();
+	relExp1FalseList.clear();
+
+	if(!relExp1->getIsRelational()) {
+		writeIntoTempFile("; Line no: " + to_string(relExp1->getStartLine()));
+		writeIntoTempFile("\tPOP AX");
+		writeIntoTempFile("\tCMP AX, 0");
+		writeIntoTempFile("\tJNE ");
+		relExp1TrueList.push_back(tempFileLineCount);
+		writeIntoTempFile("\tJMP ");
+		relExp1FalseList.push_back(tempFileLineCount);	
+	}
+
+	relExp1->mergeTrueList(relExp1TrueList);
+	relExp1->mergeFalseList(relExp1FalseList);
 }
 
 string getRelopJumpStatements(string relString) {
@@ -722,7 +744,7 @@ statements : statement {
 Marker: {
 		$$ = new SymbolInfo("marker", "marker");
 		$$->setLabel("L" + to_string(++labelCount));
-		writeIntoTempFile("L" + to_string(labelCount));
+		writeIntoTempFile("L" + to_string(labelCount) + ":");
 
 	}
 
@@ -1106,6 +1128,7 @@ expression : logic_expression {
 			// }
 
 			// icg code
+			writeIntoTempFile("; Line no: " + to_string($1->getStartLine()) + " = operation");
 			if($3->getIsBoolean()) {
 				string label1 = "L" + to_string(++labelCount);
 				insertIntoLabelMap($3->getTrueList(), label1);  // backpathing
@@ -1117,7 +1140,7 @@ expression : logic_expression {
 
 				
 				string label2 = "L" + to_string(++labelCount);
-				// insertIntoLabelMap(fList, label2);  // I have no idea why this generates segmentation fault
+				// insertIntoLabelMap($3->getFalseList(), label2);  // I have no idea why this generates segmentation fault
 				vector<long> fList = $3->getFalseList();
 				for(int i=0;i<fList.size();i++) {
 					labelMap[fList[i]] = label2;
@@ -1166,18 +1189,18 @@ logic_expression : rel_expression {
   			$$->setTrueList($1->getTrueList());
   			$$->setFalseList($1->getFalseList());
   			$$->setNextList($1->getNextList());
-			cout << "logic_expression : rel_expression " << endl;
-			$1->getFalseList();
-			cout << "logic_expression : rel_expression 222" << endl;
+
 		}		
-		 | rel_expression LOGICOP Marker rel_expression {
+		 | rel_expression LOGICOP { determineJumpForLogicalOp($1);} Marker rel_expression {
 			fprintf(logout,"logic_expression : rel_expression LOGICOP rel_expression \n");
 			$$ = new SymbolInfo("rel_expression LOGICOP rel_expression", "logic_expression");
 			$$->setStartLine($1->getStartLine());
-			$$->setEndLine($3->getEndLine());
+			$$->setEndLine(relExp2->getEndLine());
 			$$->addChild($1);
 			$$->addChild($2);
 			$$->addChild($3);
+			$$->addChild($4);
+			$$->addChild(relExp2);
 
 
 			$$->setIsBoolean(true);
@@ -1197,16 +1220,56 @@ logic_expression : rel_expression {
 			// }
 
 			// icg code
+			writeIntoTempFile("; line No " + to_string($1->getStartLine()));
+			vector<long> backPatchTrueList2;
+			vector<long> backPatchFalseList2;
 			if($2->getName() == "&&") {
-				insertIntoLabelMap($1->getTrueList(), $3->getLabel()); // backpatching
-				$$->setTrueList($4->getTrueList());
+				if(!$4->getIsRelational()) {
+					writeIntoTempFile("\tPOP BX");
+				}
+
+				if(!$4->getIsRelational()) {
+					writeIntoTempFile("\tCMP BX, 0");
+					writeIntoTempFile("\tJNE ");
+					backPatchTrueList2.push_back(tempFileLineCount);
+					writeIntoTempFile("\tJMP ");
+					backPatchFalseList2.push_back(tempFileLineCount);
+				}
+				
+				// for relational(backPatchTrueList1 empty) or non-relational->($1->list is empty, so backPatchTrueList1 works)
+				insertIntoLabelMap($1->getTrueList(), $4->getLabel()); // backpatching
+				insertIntoLabelMap(relExp1TrueList, $4->getLabel());
+				
+				$$->setTrueList(relExp2->getTrueList());
+				$$->mergeTrueList(backPatchTrueList2);
+
 				$$->setFalseList($1->getFalseList());
-				$$->mergeFalseList($4->getFalseList());
+				$$->mergeFalseList(relExp2->getFalseList());
+				$$->mergeFalseList(relExp1FalseList);
+				$$->mergeFalseList(backPatchFalseList2);
 			} else{
-				insertIntoLabelMap($1->getTrueList(), $3->getLabel());
-				$$->setFalseList($4->getFalseList());
+				if(!$4->getIsRelational()) {
+					writeIntoTempFile("\tPOP BX");
+				}
+
+				if(!$4->getIsRelational()) {
+					writeIntoTempFile("\tCMP BX, 0");
+					writeIntoTempFile("\tJNE ");
+					backPatchTrueList2.push_back(tempFileLineCount);
+					writeIntoTempFile("\tJMP ");
+					backPatchFalseList2.push_back(tempFileLineCount);
+				}
+
+				insertIntoLabelMap($1->getFalseList(), $4->getLabel());
+				insertIntoLabelMap(relExp1FalseList, $4->getLabel());
+
+				$$->setFalseList(relExp2->getFalseList());
+				$$->mergeFalseList(backPatchFalseList2);
+
 				$$->setTrueList($1->getTrueList());
-				$$->mergeTrueList($4->getTrueList());
+				$$->mergeTrueList(relExp2->getTrueList());
+				$$->mergeTrueList(relExp1TrueList);
+				$$->mergeTrueList(backPatchTrueList2);
 			}			
 		 }	
 		 ;
@@ -1225,6 +1288,8 @@ rel_expression	: simple_expression {
 			$$->setIsFromConstant($1->getIsFromConstant());
 			$$->setConstantIntValue($1->getConstantIntValue());
 			$$->setConstantFloatValue($1->getConstantFloatValue());
+
+			relExp2 = $$;
 		}
 		| simple_expression RELOP simple_expression	{
 			fprintf(logout,"rel_expression : simple_expression RELOP simple_expression \n");
@@ -1236,6 +1301,7 @@ rel_expression	: simple_expression {
 			$$->addChild($3);
 
 			$$->setIsBoolean(true);
+			$$->setIsRelational(true);
 			// $$->setTypeSpecifier(castType($1,$3));
 			// if($$->getTypeSpecifier() != "error") {
 			// 	if($$->getTypeSpecifier() == "VOID") {
@@ -1257,10 +1323,10 @@ rel_expression	: simple_expression {
 			writeIntoTempFile("\tCMP AX, BX");
 			writeIntoTempFile("\t" + getRelopJumpStatements($2->getName()) + " ");
 			$$->addTrueList(tempFileLineCount);
-			writeIntoTempFile("\tJMP ");
-			
+			writeIntoTempFile("\tJMP ");			
 			$$->addFalseList(tempFileLineCount);
-			cout << "Added to false list" << endl;			
+
+			relExp2 = $$;
 		}
 		;
 				
