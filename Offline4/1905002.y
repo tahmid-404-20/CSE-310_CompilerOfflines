@@ -115,6 +115,23 @@ void determineJumpForLogicalOp(SymbolInfo *relExp1) {
 	relExp1->mergeFalseList(relExp1FalseList);
 }
 
+void writeForNonBooleanExpressions(SymbolInfo* expression) {
+	vector<long> trueList;
+	vector<long> falseList;
+	if(!expression->getIsBoolean()) {
+		writeIntoTempFile("; Line no: " + to_string(expression->getStartLine()) + " (Non-Boolean Expression)");
+		writeIntoTempFile("\tPOP AX");
+		writeIntoTempFile("\tCMP AX, 0");
+		writeIntoTempFile("\tJNE ");
+		trueList.push_back(tempFileLineCount);
+		writeIntoTempFile("\tJMP ");
+		falseList.push_back(tempFileLineCount);
+	}
+
+	expression->mergeTrueList(trueList);
+	expression->mergeFalseList(falseList);
+}
+
 string getRelopJumpStatements(string relString) {
 	if(relString == "<")
 		return "JL";
@@ -840,16 +857,27 @@ statement : var_declaration {
 			$$->mergeNextList($8->getNextList());
 			$$->mergeNextList($10->getNextList());
 	  }
-	  | WHILE LPAREN expression RPAREN statement {
+	  | WHILE LPAREN Marker expression {writeForNonBooleanExpressions($4);} RPAREN Marker statement{
 			fprintf(logout,"statement : WHILE LPAREN expression RPAREN statement \n");
 			$$ = new SymbolInfo("WHILE LPAREN expression RPAREN statement", "statement");
 			$$->setStartLine($1->getStartLine());
-			$$->setEndLine($5->getEndLine());
+			$$->setEndLine($8->getEndLine());
 			$$->addChild($1);
 			$$->addChild($2);
 			$$->addChild($3);
 			$$->addChild($4);
-			$$->addChild($5);
+			$$->addChild($6);
+			$$->addChild($7);
+			$$->addChild($8);
+			
+
+			insertIntoLabelMap($4->getTrueList(), $7->getLabel());
+			insertIntoLabelMap($8->getNextList(), $3->getLabel());
+
+			$$->setNextList($4->getFalseList());
+
+			writeIntoTempFile("\tJMP " + $3->getLabel());
+
 	  }
 	  | PRINTLN LPAREN ID RPAREN SEMICOLON {
 			fprintf(logout,"statement : PRINTLN LPAREN ID RPAREN SEMICOLON \n");
