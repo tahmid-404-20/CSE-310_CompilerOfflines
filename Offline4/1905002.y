@@ -239,7 +239,7 @@ string castType(SymbolInfo *leftSymbol, SymbolInfo *rightSymbol) {
 
 %token<symbolInfo> IF ELSE FOR WHILE DO BREAK INT CHAR FLOAT DOUBLE VOID RETURN SWITCH CASE DEFAULT CONTINUE CONST_INT CONST_FLOAT CONST_CHAR ID NOT LOGICOP RELOP ADDOP MULOP INCOP DECOP ASSIGNOP LPAREN RPAREN LCURL RCURL LSQUARE RSQUARE COMMA SEMICOLON BITOP SINGLE_LINE_STRING MULTI_LINE_STRING LOWER_THAN_ELSE PRINTLN
 %type<symbolInfo> start program unit func_declaration func_definition parameter_list compound_statement var_declaration type_specifier declaration_list statements statement expression_statement variable expression logic_expression rel_expression simple_expression term unary_expression factor argument_list arguments LCURL_
-%type<symbolInfo> Marker
+%type<symbolInfo> Marker Jumper
 
 %destructor { clearMemSyntaxTree($$);  } <symbolInfo>
 
@@ -385,7 +385,7 @@ func_declaration : type_specifier ID LPAREN parameter_list RPAREN SEMICOLON {
 		}
 		;
 		 
-func_definition : type_specifier ID LPAREN parameter_list RPAREN {insertFunctionDefinition($1,$2,$4); printFuncDefEntryCommands($2);stackOffset=0;} compound_statement {
+func_definition : type_specifier ID LPAREN parameter_list RPAREN {insertFunctionDefinition($1,$2,$4); printFuncDefEntryCommands($2);stackOffset=0;} compound_statement{
 			fprintf(logout,"func_definition : type_specifier ID LPAREN parameter_list RPAREN compound_statement \n");
 			$$ = new SymbolInfo("type_specifier ID LPAREN parameter_list RPAREN compound_statement", "func_definition");
 			$$->setStartLine($1->getStartLine());
@@ -528,7 +528,7 @@ parameter_list  : parameter_list COMMA type_specifier ID {
  		;
 
  		
-compound_statement : LCURL_ statements RCURL {
+compound_statement : LCURL_ statements Marker RCURL {
 				fprintf(logout,"compound_statement : LCURL statements RCURL \n");
 				$$ = new SymbolInfo("LCURL statements RCURL", "compound_statement");
 				$$->setStartLine($1->getStartLine());
@@ -536,12 +536,15 @@ compound_statement : LCURL_ statements RCURL {
 				$$->addChild($1->getChildList()[0]);
 				$$->addChild($2);
 				$$->addChild($3);
+				$$->addChild($4);
 
 				compRef = $$;
 
 				// $$->setTypeSpecifier($2->getTypeSpecifier());
 				st.printAllScopeTable(logout);
 				st.exitScope();
+
+				insertIntoLabelMap($2->getNextList(), $3->getLabel());
 			}
  		    | LCURL_ RCURL {
 				fprintf(logout,"compound_statement : LCURL RCURL \n");
@@ -729,15 +732,20 @@ statements : statement {
 			$$->setStartLine($1->getStartLine());
 			$$->setEndLine($1->getEndLine());
 			$$->addChild($1);
+
+			$$->setNextList($1->getNextList());
 }      
-	   | statements statement {
+	   | statements Marker statement {
 			fprintf(logout,"statements : statements statement \n");
 			$$ = new SymbolInfo("statements statement", "statements");
 			$$->setStartLine($1->getStartLine());
 			$$->setEndLine($2->getEndLine());
 			$$->addChild($1);
 			$$->addChild($2);
+			$$->addChild($3);
 
+			insertIntoLabelMap($1->getNextList(), $2->getLabel());
+			$$->setNextList($3->getNextList());
 	   }
 	   ;
 
@@ -747,6 +755,13 @@ Marker: {
 		writeIntoTempFile("L" + to_string(labelCount) + ":");
 
 	}
+
+Jumper: {
+		$$ = new SymbolInfo("jumper", "jumper");
+		writeIntoTempFile("\tJMP ");
+		$$->addNextList(tempFileLineCount);
+	}
+	;
 
 statement : var_declaration {
 			fprintf(logout,"statement : var_declaration \n");
@@ -786,7 +801,7 @@ statement : var_declaration {
 			$$->addChild($7);
 
 	  }
-	  | IF LPAREN expression RPAREN statement %prec LOWER_THAN_ELSE {
+	  | IF LPAREN expression RPAREN Marker statement %prec LOWER_THAN_ELSE {
 			fprintf(logout,"statement : IF LPAREN expression RPAREN statement \n");
 			$$ = new SymbolInfo("IF LPAREN expression RPAREN statement", "statement");
 			$$->setStartLine($1->getStartLine());
@@ -796,9 +811,13 @@ statement : var_declaration {
 			$$->addChild($3);
 			$$->addChild($4);
 			$$->addChild($5);
+			$$->addChild($6);
 
+			insertIntoLabelMap($3->getTrueList(), $5->getLabel());
+			$$->setNextList($3->getFalseList());
+			$$->mergeNextList($6->getNextList());
 	  }
-	  | IF LPAREN expression RPAREN statement ELSE statement {
+	  | IF LPAREN expression RPAREN Marker statement ELSE Jumper Marker statement {
 			fprintf(logout,"statement : IF LPAREN expression RPAREN statement ELSE statement \n");
 			$$ = new SymbolInfo("IF LPAREN expression RPAREN statement ELSE statement", "statement");
 			$$->setStartLine($1->getStartLine());
@@ -810,7 +829,16 @@ statement : var_declaration {
 			$$->addChild($5);
 			$$->addChild($6);
 			$$->addChild($7);
+			$$->addChild($8);
+			$$->addChild($9);
+			$$->addChild($10);
 
+			insertIntoLabelMap($3->getTrueList(), $5->getLabel());
+			insertIntoLabelMap($3->getFalseList(), $9->getLabel());
+
+			$$->setNextList($6->getNextList());
+			$$->mergeNextList($8->getNextList());
+			$$->mergeNextList($10->getNextList());
 	  }
 	  | WHILE LPAREN expression RPAREN statement {
 			fprintf(logout,"statement : WHILE LPAREN expression RPAREN statement \n");
@@ -947,21 +975,8 @@ expression_statement 	: SEMICOLON	{
 
 				$$->setTypeSpecifier($1->getTypeSpecifier());
 
+				// handle when n && i; type stmt without assignment
 				writeIntoTempFile("\tPOP AX");    // returning the stack to prev situation
-			} | error SEMICOLON {
-			fprintf(logout,"Error at line no %d : Syntax Error\n", lastSyntaxErrorLine);
-			$$ = new SymbolInfo("expression SEMICOLON", "expression_statement");
-			$$->setStartLine($2->getStartLine());
-			$$->setEndLine($2->getEndLine());
-			SymbolInfo* temp = new SymbolInfo("error", "expression");
-			temp->setStartLine(lastSyntaxErrorLine);
-			temp->setEndLine(lastSyntaxErrorLine);
-			temp->setIsLeaf(true);
-			$$->addChild(temp);
-			$$->addChild($2);
-
-			fprintf(errorout, "Line# %d: Syntax error at expression of expression statement\n", lastSyntaxErrorLine);
-			syntaxErrorCount++;	
 			}
 			;
 	  
@@ -1164,7 +1179,6 @@ expression : logic_expression {
 			// icg code
 			writeIntoTempFile("; Line no: " + to_string($1->getStartLine()) + " = operation");
 			if($3->getIsBoolean()) {
-				$$->setIsBoolean(true);
 				string label1 = "L" + to_string(++labelCount);
 				insertIntoLabelMap($3->getTrueList(), label1);  // backpatching
 				writeIntoTempFile(label1 + ":");
@@ -1258,11 +1272,8 @@ logic_expression : rel_expression {
 			vector<long> backPatchFalseList2;
 			if($2->getName() == "&&") {
 				if(!$4->getIsRelational()) {
-					writeIntoTempFile("\tPOP BX");
-				}
-
-				if(!$4->getIsRelational()) {
-					writeIntoTempFile("\tCMP BX, 0");
+					writeIntoTempFile("\tPOP AX");
+					writeIntoTempFile("\tCMP AX, 0");
 					writeIntoTempFile("\tJNE ");
 					backPatchTrueList2.push_back(tempFileLineCount);
 					writeIntoTempFile("\tJMP ");
@@ -1282,11 +1293,8 @@ logic_expression : rel_expression {
 				$$->mergeFalseList(backPatchFalseList2);
 			} else{
 				if(!$4->getIsRelational()) {
-					writeIntoTempFile("\tPOP BX");
-				}
-
-				if(!$4->getIsRelational()) {
-					writeIntoTempFile("\tCMP BX, 0");
+					writeIntoTempFile("\tPOP AX");
+					writeIntoTempFile("\tCMP AX, 0");
 					writeIntoTempFile("\tJNE ");
 					backPatchTrueList2.push_back(tempFileLineCount);
 					writeIntoTempFile("\tJMP ");
