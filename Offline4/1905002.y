@@ -843,6 +843,7 @@ statement : var_declaration {
 			// icg code
 			SymbolInfo* look = st.lookUp($3->getName());
 			string varName;
+			writeIntoTempFile("; Line no: " + to_string($1->getStartLine()) + " -> in println");
 			if(look->getIsGlobalVariable()) {
 				varName = look->getName();
 			} else{					
@@ -874,6 +875,7 @@ statement : var_declaration {
 			}
 
 			// icg code
+			writeIntoTempFile("; Line no: " + to_string($1->getStartLine()) + " -> in println");
 			writeIntoTempFile("\tPOP AX");
 			SymbolInfo* look = st.lookUp($3->getName());
 			string varName;
@@ -1010,6 +1012,33 @@ variable : ID {
 			$$->addChild($3);
 			$$->addChild($4);
 
+			// handle the case when expression can be a < b or a && b or (a < b) && c, same as assignment
+			writeIntoTempFile("; Line no: " + to_string($1->getStartLine()) + " = operation");
+			if($3->getIsBoolean()) {
+				string label1 = "L" + to_string(++labelCount);
+				insertIntoLabelMap($3->getTrueList(), label1);  // backpathing
+				writeIntoTempFile(label1 + ":");
+				writeIntoTempFile("\tMOV BX, 1");
+				
+				string jumpLabel = "L" + to_string(++labelCount);
+				writeIntoTempFile("\tJMP " + jumpLabel);
+				
+				string label2 = "L" + to_string(++labelCount);
+				// insertIntoLabelMap($3->getFalseList(), label2);  // backpatching, I have no idea why this generates segmentation fault
+				vector<long> fList = $3->getFalseList();
+				for(int i=0;i<fList.size();i++) {
+					labelMap[fList[i]] = label2;
+				}
+
+				writeIntoTempFile(label2 + ":");
+				writeIntoTempFile("\tMOV BX, 0");
+
+				writeIntoTempFile(jumpLabel + ":");
+
+				writeIntoTempFile("\tMOV AX, BX");
+				writeIntoTempFile("\tPUSH AX");
+			}
+
 			SymbolInfo* look = st.lookUp($1->getName());
 			$$->setIsGlobalVariable(look->getIsGlobalVariable());
 			$$->setVarName(look->getName());
@@ -1070,6 +1099,11 @@ expression : logic_expression {
 			$$->setIsFromConstant($1->getIsFromConstant());
 			$$->setConstantIntValue($1->getConstantIntValue());
 			$$->setConstantFloatValue($1->getConstantFloatValue());
+
+			$$->setIsBoolean($1->getIsBoolean());
+  			$$->setTrueList($1->getTrueList());
+  			$$->setFalseList($1->getFalseList());
+  			$$->setNextList($1->getNextList());
 		}	
 	   | variable ASSIGNOP logic_expression	{
 			fprintf(logout,"expression : variable ASSIGNOP logic_expression \n");
@@ -1130,31 +1164,31 @@ expression : logic_expression {
 			// icg code
 			writeIntoTempFile("; Line no: " + to_string($1->getStartLine()) + " = operation");
 			if($3->getIsBoolean()) {
+				$$->setIsBoolean(true);
 				string label1 = "L" + to_string(++labelCount);
-				insertIntoLabelMap($3->getTrueList(), label1);  // backpathing
+				insertIntoLabelMap($3->getTrueList(), label1);  // backpatching
 				writeIntoTempFile(label1 + ":");
-				writeIntoTempFile("\tMOV AX, 1");
+				writeIntoTempFile("\tMOV BX, 1");
 				
 				string jumpLabel = "L" + to_string(++labelCount);
 				writeIntoTempFile("\tJMP " + jumpLabel);
-
 				
 				string label2 = "L" + to_string(++labelCount);
-				// insertIntoLabelMap($3->getFalseList(), label2);  // I have no idea why this generates segmentation fault
+				// insertIntoLabelMap($3->getFalseList(), label2);  // backpatching, I have no idea why this generates segmentation fault
 				vector<long> fList = $3->getFalseList();
 				for(int i=0;i<fList.size();i++) {
 					labelMap[fList[i]] = label2;
 				}
 
 				writeIntoTempFile(label2 + ":");
-				writeIntoTempFile("\tMOV AX, 0");
+				writeIntoTempFile("\tMOV BX, 0");
 
 				writeIntoTempFile(jumpLabel + ":");
 
 				string varName = getVarRightSide($1);
-				writeIntoTempFile("\tMOV " + varName + ", AX");
+				writeIntoTempFile("\tMOV " + varName + ", BX");
+				writeIntoTempFile("\tMOV AX, BX");
 				writeIntoTempFile("\tPUSH AX");
-				
 
 			} else {
 				writeIntoTempFile("\tPOP BX");  // this is the logic exp when no boolean as for boolean, we don't push values, value to be assigned
@@ -1165,8 +1199,7 @@ expression : logic_expression {
 				writeIntoTempFile("\tMOV " + varName + ", BX");
 				writeIntoTempFile("\tMOV AX, " + varName);
 				writeIntoTempFile("\tPUSH AX");  // supports a = b = c type of assignment
-			}
-			
+			}			
 	   }	
 	   ;
 			
@@ -1290,6 +1323,11 @@ rel_expression	: simple_expression {
 			$$->setConstantFloatValue($1->getConstantFloatValue());
 
 			relExp2 = $$;
+
+			$$->setIsBoolean($1->getIsBoolean());
+  			$$->setTrueList($1->getTrueList());
+  			$$->setFalseList($1->getFalseList());
+  			$$->setNextList($1->getNextList());
 		}
 		| simple_expression RELOP simple_expression	{
 			fprintf(logout,"rel_expression : simple_expression RELOP simple_expression \n");
@@ -1344,6 +1382,11 @@ simple_expression : term {
 			$$->setIsFromConstant($1->getIsFromConstant());
 			$$->setConstantIntValue($1->getConstantIntValue());
 			$$->setConstantFloatValue($1->getConstantFloatValue());
+
+			$$->setIsBoolean($1->getIsBoolean());
+  			$$->setTrueList($1->getTrueList());
+  			$$->setFalseList($1->getFalseList());
+  			$$->setNextList($1->getNextList());
 		}
 		  | simple_expression ADDOP term {
 			fprintf(logout,"simple_expression : simple_expression ADDOP term \n");
@@ -1393,6 +1436,10 @@ term : unary_expression {
 			$$->setConstantIntValue($1->getConstantIntValue());
 			$$->setConstantFloatValue($1->getConstantFloatValue());
 
+			$$->setIsBoolean($1->getIsBoolean());
+  			$$->setTrueList($1->getTrueList());
+  			$$->setFalseList($1->getFalseList());
+  			$$->setNextList($1->getNextList());		
 			
 	}
     | term MULOP unary_expression {
@@ -1517,6 +1564,11 @@ unary_expression : ADDOP unary_expression {
 			$$->setConstantIntValue($1->getConstantIntValue());
 			$$->setConstantFloatValue($1->getConstantFloatValue());
 
+			$$->setIsBoolean($1->getIsBoolean());
+  			$$->setTrueList($1->getTrueList());
+  			$$->setFalseList($1->getFalseList());
+  			$$->setNextList($1->getNextList());
+
 		 }
 		 ;
 	
@@ -1607,6 +1659,11 @@ factor	: variable {
 			$$->setIsArrayWithoutIndex($2->getIsArrayWithoutIndex());
 
 			$$->setTypeSpecifier($2->getTypeSpecifier());
+
+			$$->setIsBoolean($2->getIsBoolean());
+  			$$->setTrueList($2->getTrueList());
+  			$$->setFalseList($2->getFalseList());
+  			$$->setNextList($2->getNextList());
 	}
 	| CONST_INT {
 			fprintf(logout,"factor : CONST_INT \n");
