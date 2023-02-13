@@ -1200,53 +1200,6 @@ expression : logic_expression {
 
 			expr = $$;
 
-			// if($1->getTypeSpecifier() != "error" && $3->getTypeSpecifier() != "error") {
-			// 	if( $3->getTypeSpecifier() == "VOID" ){
-			// 	fprintf(errorout, "Line# %d: Void cannot be used in expression \n", $1->getStartLine());
-			// 	syntaxErrorCount++;
-			// 	$$->setTypeSpecifier("error");
-			// 	} else if($1->getIsArray() == true && $1->getIsArrayWithoutIndex() == true) {
-			// 		fprintf(errorout, "Line# %d: Assignment to expression with array type\n", $1->getStartLine());
-			// 		syntaxErrorCount++;
-			// 		$$->setTypeSpecifier("error");
-			// 	} else if( $1->getTypeSpecifier()== "FLOAT" && $3->getTypeSpecifier() == "INT" ){
-			// 	// okay, i don't know how type cast occurs
-			// 	} else if( $1->getTypeSpecifier()== "INT" && $3->getTypeSpecifier() == "FLOAT" ){
-			// 		fprintf(errorout, "Line# %d: Warning: possible loss of data in assignment of FLOAT to INT\n", $1->getStartLine());
-			// 		syntaxErrorCount++;
-			// 		$$->setTypeSpecifier("error");
-			// 	} else if($1->getTypeSpecifier()!=$3->getTypeSpecifier() && !($1->getTypeSpecifier() =="error" || $3->getTypeSpecifier() =="error")){
-			// 		fprintf(errorout, "Line# %d: Type mismatch for assignment operator \n", $1->getStartLine());
-			// 		syntaxErrorCount++;
-			// 		$$->setTypeSpecifier("error");
-			// 	} else {
-			// 		$$->setTypeSpecifier(castType($1,$3));
-			// 	}
-			// } else {
-			// 	$$->setTypeSpecifier("error");
-			// }
-			
-			// if(!$1->getIsArray()) {
-			// 	if($1->getIsGlobalVariable()) {
-			// 		varName = $1->getVarName();
-			// 	} else{					
-			// 		varName = "[BP-" + to_string($1->getStackOffset()) + "]";
-			// 	}	
-			// } else {  // array
-			// 	writeIntoTempFile("\tPOP AX");  // this is the index, pushed during array indexing, now popping
-			// 	if($1->getIsGlobalVariable()) {
-			// 		writeIntoTempFile("\tMOV SI, AX");
-			// 		varName =  $1->getVarName() +"[SI]";
-			// 	} else {					
-			// 		int stkOffset = $1->getStackOffset();
-			// 		writeIntoTempFile("\tMOV SI, BP");
-			// 		writeIntoTempFile("\tSUB SI, " + to_string(stkOffset));   // [BP - 2] means a[0]
-			// 		writeIntoTempFile("\tSHL AX, 1");
-			// 		writeIntoTempFile("\tSUB SI, AX");
-			// 		varName = "[SI]";
-			// 	}	
-			// }
-
 			// icg code
 			writeIntoTempFile("; Line no: " + to_string($1->getStartLine()) + " = operation");
 			if($3->getIsBoolean()) {
@@ -1627,26 +1580,32 @@ unary_expression : ADDOP unary_expression {
 			// 	$$->setTypeSpecifier("error");
 			// }
 
+			if($2->getIsBoolean()) {
+				writeIntoTempFile("; Line no " + to_string($1->getStartLine()) + " NOT operator");
+				$$->setIsBoolean(true);
+				$$->setTrueList($2->getFalseList());
+				$$->setFalseList($2->getTrueList());
+			} else {
+				string label1 = "L" + to_string(++labelCount);
+				string label2 = "L" + to_string(++labelCount);
+				string jumpLabel = "L" + to_string(++labelCount);
 
-			string label1 = "L" + to_string(++labelCount);
-			string label2 = "L" + to_string(++labelCount);
-			string jumpLabel = "L" + to_string(++labelCount);
+				writeIntoTempFile("; Line no " + to_string($1->getStartLine()) + " NOT operator");
+				writeIntoTempFile("\tPOP AX");
+				writeIntoTempFile("\tCMP AX, 0");
+				writeIntoTempFile("\tJNE " + label1);  // result non-zero, so make it zero
+				writeIntoTempFile("\tJMP " + label2);
 
-			writeIntoTempFile("; Line no " + to_string($1->getStartLine()) + " NOT operator");
-			writeIntoTempFile("\tPOP AX");
-			writeIntoTempFile("\tCMP AX, 0");
-			writeIntoTempFile("\tJNE " + label1);  // result non-zero, so make it zero
-			writeIntoTempFile("\tJMP " + label2);
+				writeIntoTempFile(label1 + ":");
+				writeIntoTempFile("\tMOV AX, 0");
+				writeIntoTempFile("\tJMP " + jumpLabel);
 
-			writeIntoTempFile(label1 + ":");
-			writeIntoTempFile("\tMOV AX, 0");
-			writeIntoTempFile("\tJMP " + jumpLabel);
+				writeIntoTempFile(label2 + ":");
+				writeIntoTempFile("\tMOV AX, 1");
 
-			writeIntoTempFile(label2 + ":");
-			writeIntoTempFile("\tMOV AX, 1");
-
-			writeIntoTempFile(jumpLabel + ":");
-			writeIntoTempFile("\tPUSH AX");
+				writeIntoTempFile(jumpLabel + ":");
+				writeIntoTempFile("\tPUSH AX"); 
+			}
 
 		 }
 		 | factor {
