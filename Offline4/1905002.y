@@ -118,12 +118,14 @@ void determineJumpForLogicalOp(SymbolInfo *relExp1) {
 	relExp1->mergeFalseList(relExp1FalseList);
 }
 
-void writeForNonBooleanExpressions(SymbolInfo* expression) {
+void writeForNonBooleanExpressions(SymbolInfo* expression, bool doPop = true) {
 	vector<long> trueList;
 	vector<long> falseList;
 	if(!expression->getIsBoolean()) {
 		writeIntoTempFile("; Line no: " + to_string(expression->getStartLine()) + " (Non-Boolean Expression)");
-		writeIntoTempFile("\tPOP AX");
+		if(doPop) {
+			writeIntoTempFile("\tPOP AX");
+		}
 		writeIntoTempFile("\tCMP AX, 0");
 		writeIntoTempFile("\tJNE ");
 		trueList.push_back(tempFileLineCount);
@@ -812,7 +814,7 @@ statement : var_declaration {
 			$$->addChild($1);
 
 	  }
-	  | FOR LPAREN expression_statement Marker expression_statement Marker Jumper Marker expression Jumper RPAREN Marker statement {
+	  | FOR LPAREN expression_statement Marker expression_statement {writeForNonBooleanExpressions($5, false);} Marker Jumper Marker expression Jumper RPAREN Marker statement {
 			fprintf(logout,"statement : FOR LPAREN expression_statement expression_statement expression RPAREN statement \n");
 			$$ = new SymbolInfo("FOR LPAREN expression_statement expression_statement expression RPAREN statement", "statement");
 			$$->setStartLine($1->getStartLine());
@@ -822,7 +824,6 @@ statement : var_declaration {
 			$$->addChild($3);
 			$$->addChild($4);
 			$$->addChild($5);
-			$$->addChild($6);
 			$$->addChild($7);
 			$$->addChild($8);
 			$$->addChild($9);
@@ -830,15 +831,15 @@ statement : var_declaration {
 			$$->addChild($11);
 			$$->addChild($12);
 			$$->addChild($13);
+			$$->addChild($14);
 
-			insertIntoLabelMap($5->getTrueList(), $6->getLabel());
-			insertIntoLabelMap($10->getNextList(), $4->getLabel());
-			// insetIntoLabelMap($13->getNextList(), $8->getLabel());
-			insertIntoLabelMap($7->getNextList(), $12->getLabel());
+			insertIntoLabelMap($5->getTrueList(), $7->getLabel());
+			insertIntoLabelMap($11->getNextList(), $4->getLabel());
+			insertIntoLabelMap($8->getNextList(), $13->getLabel());
 
 			$$->setNextList($5->getFalseList());
 
-			writeIntoTempFile("\tJMP " + $8->getLabel());
+			writeIntoTempFile("\tJMP " + $9->getLabel());
 
 	  }
 	  | IF LPAREN expression RPAREN non_boolean_if Marker statement %prec LOWER_THAN_ELSE {
