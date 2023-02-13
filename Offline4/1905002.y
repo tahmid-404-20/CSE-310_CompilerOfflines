@@ -777,7 +777,7 @@ Marker: {
 	}
 
 Jumper: {
-		$$ = new SymbolInfo("jumper", "jumper");
+		$$ = new SymbolInfo("", "");
 		writeIntoTempFile("\tJMP ");
 		$$->addNextList(tempFileLineCount);
 	}
@@ -812,7 +812,7 @@ statement : var_declaration {
 			$$->addChild($1);
 
 	  }
-	  | FOR LPAREN expression_statement expression_statement expression RPAREN statement {
+	  | FOR LPAREN expression_statement Marker expression_statement Marker Jumper Marker expression Jumper RPAREN Marker statement {
 			fprintf(logout,"statement : FOR LPAREN expression_statement expression_statement expression RPAREN statement \n");
 			$$ = new SymbolInfo("FOR LPAREN expression_statement expression_statement expression RPAREN statement", "statement");
 			$$->setStartLine($1->getStartLine());
@@ -824,6 +824,21 @@ statement : var_declaration {
 			$$->addChild($5);
 			$$->addChild($6);
 			$$->addChild($7);
+			$$->addChild($8);
+			$$->addChild($9);
+			$$->addChild($10);
+			$$->addChild($11);
+			$$->addChild($12);
+			$$->addChild($13);
+
+			insertIntoLabelMap($5->getTrueList(), $6->getLabel());
+			insertIntoLabelMap($10->getNextList(), $4->getLabel());
+			// insetIntoLabelMap($13->getNextList(), $8->getLabel());
+			insertIntoLabelMap($7->getNextList(), $12->getLabel());
+
+			$$->setNextList($5->getFalseList());
+
+			writeIntoTempFile("\tJMP " + $8->getLabel());
 
 	  }
 	  | IF LPAREN expression RPAREN non_boolean_if Marker statement %prec LOWER_THAN_ELSE {
@@ -842,6 +857,8 @@ statement : var_declaration {
 			insertIntoLabelMap($3->getTrueList(), $6->getLabel());
 			$$->setNextList($3->getFalseList());
 			$$->mergeNextList($6->getNextList());
+
+			
 	  }
 	  | IF LPAREN expression RPAREN non_boolean_if Marker statement ELSE Jumper Marker statement {
 			fprintf(logout,"statement : IF LPAREN expression RPAREN statement ELSE statement \n");
@@ -1017,8 +1034,15 @@ expression_statement 	: SEMICOLON	{
 
 				$$->setTypeSpecifier($1->getTypeSpecifier());
 
-				// handle when n && i; type stmt without assignment
-				writeIntoTempFile("\tPOP AX");    // returning the stack to prev situation
+				// handle when n && i; type stmt without assignment, necessary in  for loop
+				$$->setIsBoolean($1->getIsBoolean());
+				$$->setTrueList($1->getTrueList());
+				$$->setFalseList($1->getFalseList());
+				$$->setNextList($1->getNextList());
+
+				// if(!$1->getIsBoolean()) {
+					writeIntoTempFile("\tPOP AX");    // returning the stack to prev situation
+				// }
 			}
 			;
 	  
