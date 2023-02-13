@@ -48,6 +48,7 @@ map <long, string> labelMap;
 
 SymbolInfo *compRef;
 SymbolInfo *relExp2;
+SymbolInfo *expr;
 vector<long> relExp1TrueList;
 vector<long> relExp1FalseList;
 
@@ -258,7 +259,7 @@ string castType(SymbolInfo *leftSymbol, SymbolInfo *rightSymbol) {
 
 %token<symbolInfo> IF ELSE FOR WHILE DO BREAK INT CHAR FLOAT DOUBLE VOID RETURN SWITCH CASE DEFAULT CONTINUE CONST_INT CONST_FLOAT CONST_CHAR ID NOT LOGICOP RELOP ADDOP MULOP INCOP DECOP ASSIGNOP LPAREN RPAREN LCURL RCURL LSQUARE RSQUARE COMMA SEMICOLON BITOP SINGLE_LINE_STRING MULTI_LINE_STRING LOWER_THAN_ELSE PRINTLN
 %type<symbolInfo> start program unit func_declaration func_definition parameter_list compound_statement var_declaration type_specifier declaration_list statements statement expression_statement variable expression logic_expression rel_expression simple_expression term unary_expression factor argument_list arguments LCURL_
-%type<symbolInfo> Marker Jumper
+%type<symbolInfo> Marker Jumper non_boolean_if
 
 %destructor { clearMemSyntaxTree($$);  } <symbolInfo>
 
@@ -782,6 +783,11 @@ Jumper: {
 	}
 	;
 
+non_boolean_if: {
+			$$ = new SymbolInfo("non_boolean_if", "non_boolean_if");
+			writeForNonBooleanExpressions(expr);	
+		}
+
 statement : var_declaration {
 			fprintf(logout,"statement : var_declaration \n");
 			$$ = new SymbolInfo("var_declaration", "statement");
@@ -820,7 +826,7 @@ statement : var_declaration {
 			$$->addChild($7);
 
 	  }
-	  | IF LPAREN expression RPAREN Marker statement %prec LOWER_THAN_ELSE {
+	  | IF LPAREN expression RPAREN non_boolean_if Marker statement %prec LOWER_THAN_ELSE {
 			fprintf(logout,"statement : IF LPAREN expression RPAREN statement \n");
 			$$ = new SymbolInfo("IF LPAREN expression RPAREN statement", "statement");
 			$$->setStartLine($1->getStartLine());
@@ -831,12 +837,13 @@ statement : var_declaration {
 			$$->addChild($4);
 			$$->addChild($5);
 			$$->addChild($6);
+			$$->addChild($7);
 
-			insertIntoLabelMap($3->getTrueList(), $5->getLabel());
+			insertIntoLabelMap($3->getTrueList(), $6->getLabel());
 			$$->setNextList($3->getFalseList());
 			$$->mergeNextList($6->getNextList());
 	  }
-	  | IF LPAREN expression RPAREN Marker statement ELSE Jumper Marker statement {
+	  | IF LPAREN expression RPAREN non_boolean_if Marker statement ELSE Jumper Marker statement {
 			fprintf(logout,"statement : IF LPAREN expression RPAREN statement ELSE statement \n");
 			$$ = new SymbolInfo("IF LPAREN expression RPAREN statement ELSE statement", "statement");
 			$$->setStartLine($1->getStartLine());
@@ -851,13 +858,14 @@ statement : var_declaration {
 			$$->addChild($8);
 			$$->addChild($9);
 			$$->addChild($10);
+			$$->addChild($11);
 
-			insertIntoLabelMap($3->getTrueList(), $5->getLabel());
-			insertIntoLabelMap($3->getFalseList(), $9->getLabel());
+			insertIntoLabelMap($3->getTrueList(), $6->getLabel());
+			insertIntoLabelMap($3->getFalseList(), $10->getLabel());
 
-			$$->setNextList($6->getNextList());
-			$$->mergeNextList($8->getNextList());
-			$$->mergeNextList($10->getNextList());
+			$$->setNextList($7->getNextList());
+			$$->mergeNextList($9->getNextList());
+			$$->mergeNextList($11->getNextList());
 	  }
 	  | WHILE LPAREN Marker expression {writeForNonBooleanExpressions($4);} RPAREN Marker statement{
 			fprintf(logout,"statement : WHILE LPAREN expression RPAREN statement \n");
@@ -1153,6 +1161,8 @@ expression : logic_expression {
   			$$->setTrueList($1->getTrueList());
   			$$->setFalseList($1->getFalseList());
   			$$->setNextList($1->getNextList());
+
+			expr = $$;
 		}	
 	   | variable ASSIGNOP logic_expression	{
 			fprintf(logout,"expression : variable ASSIGNOP logic_expression \n");
@@ -1162,6 +1172,8 @@ expression : logic_expression {
 			$$->addChild($1);
 			$$->addChild($2);
 			$$->addChild($3);
+
+			expr = $$;
 
 			// if($1->getTypeSpecifier() != "error" && $3->getTypeSpecifier() != "error") {
 			// 	if( $3->getTypeSpecifier() == "VOID" ){
