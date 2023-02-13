@@ -1615,17 +1615,39 @@ unary_expression : ADDOP unary_expression {
 			$$->addChild($1);
 			$$->addChild($2);
 
-			if($2->getTypeSpecifier() != "error") {
-				if($2->getTypeSpecifier() != "INT") {
-				fprintf(errorout, "Line# %d: Operand of '!' is not an integer\n", $1->getStartLine());
-				syntaxErrorCount++;
-				$$->setTypeSpecifier("error");
-				} else {
-					$$->setTypeSpecifier("INT");
-				}
-			} else {
-				$$->setTypeSpecifier("error");
-			}
+			// if($2->getTypeSpecifier() != "error") {
+			// 	if($2->getTypeSpecifier() != "INT") {
+			// 	fprintf(errorout, "Line# %d: Operand of '!' is not an integer\n", $1->getStartLine());
+			// 	syntaxErrorCount++;
+			// 	$$->setTypeSpecifier("error");
+			// 	} else {
+			// 		$$->setTypeSpecifier("INT");
+			// 	}
+			// } else {
+			// 	$$->setTypeSpecifier("error");
+			// }
+
+
+			string label1 = "L" + to_string(++labelCount);
+			string label2 = "L" + to_string(++labelCount);
+			string jumpLabel = "L" + to_string(++labelCount);
+
+			writeIntoTempFile("; Line no " + to_string($1->getStartLine()) + " NOT operator");
+			writeIntoTempFile("\tPOP AX");
+			writeIntoTempFile("\tCMP AX, 0");
+			writeIntoTempFile("\tJNE " + label1);  // result non-zero, so make it zero
+			writeIntoTempFile("\tJMP " + label2);
+
+			writeIntoTempFile(label1 + ":");
+			writeIntoTempFile("\tMOV AX, 0");
+			writeIntoTempFile("\tJMP " + jumpLabel);
+
+			writeIntoTempFile(label2 + ":");
+			writeIntoTempFile("\tMOV AX, 1");
+
+			writeIntoTempFile(jumpLabel + ":");
+			writeIntoTempFile("\tPUSH AX");
+
 		 }
 		 | factor {
 			fprintf(logout,"unary_expression : factor \n");
