@@ -75,8 +75,10 @@ string getVarRightSide(SymbolInfo *varPointer) {
     writeIntoTempFile("\tPOP AX"); // this is the index, pushed during array
                                    // indexing, now popping
     if (varPointer->getIsGlobalVariable()) {
-      writeIntoTempFile("\tMOV SI, AX");
-      varName = varPointer->getVarName() + "[SI]";
+	  writeIntoTempFile("\tSHL AX, 1");	
+      writeIntoTempFile("\tLEA SI, " + varPointer->getVarName());
+	  writeIntoTempFile("\tADD SI, AX");
+      varName = "[SI]";
     } else {
       int stkOffset = varPointer->getStackOffset();
       writeIntoTempFile("\tMOV SI, BP");
@@ -936,8 +938,12 @@ statement : var_declaration {
 			SymbolInfo* look = st.lookUp($3->getName());
 			string varName;
 			if(look->getIsGlobalVariable()) {
-					writeIntoTempFile("\tMOV SI, AX");
-					varName = look->getName() +"[SI]";
+				writeIntoTempFile("\tSHL AX, 1");	
+      			writeIntoTempFile("\tLEA SI, " + look->getName());
+	  			writeIntoTempFile("\tADD SI, AX");
+      			varName = "[SI]";
+					// writeIntoTempFile("\tMOV SI, AX");
+					// varName = look->getName() +"[SI]";
 				} else{					
 					int stkOffset = look->getStackOffset();
 					writeIntoTempFile("\tMOV SI, BP");
