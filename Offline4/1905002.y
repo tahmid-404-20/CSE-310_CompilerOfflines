@@ -40,8 +40,10 @@ vector<GlobalVarDetails*> globalVarList;
 
 // function related variables
 string funcReturnType;
+string funcReturnLabel;
 int funcParameterCount = 0;
 int stackOffset = 0;
+bool isFunctionBeingDefined = false;
 
 // for code generation label fixing
 map <long, string> labelMap;
@@ -70,7 +72,11 @@ string getVarRightSide(SymbolInfo *varPointer) {
     if (varPointer->getIsGlobalVariable()) {
       varName = varPointer->getVarName();
     } else {
-      varName = "[BP-" + to_string(varPointer->getStackOffset()) + "]";
+		if(varPointer->getIsParameter()) {  // only for non-arrays in and local variables
+			varName = "[BP+" + to_string(varPointer->getStackOffset()) + "]";
+		} else {
+			varName = "[BP-" + to_string(varPointer->getStackOffset()) + "]";
+		}
     }
   } else {                         // array
     writeIntoTempFile("\tPOP AX"); // this is the index, pushed during array
@@ -407,7 +413,7 @@ func_declaration : type_specifier ID LPAREN parameter_list RPAREN SEMICOLON {
 		}
 		;
 		 
-func_definition : type_specifier ID LPAREN parameter_list RPAREN {insertFunctionDefinition($1,$2,$4); printFuncDefEntryCommands($2);stackOffset=0;} compound_statement{
+func_definition : type_specifier ID LPAREN parameter_list RPAREN {insertFunctionDefinition($1,$2,$4);printFuncDefEntryCommands($2);funcParameterCount=0;isFunctionBeingDefined=true;funcReturnLabel="L"+to_string(++labelCount);stackOffset=0;} compound_statement{
 			fprintf(logout,"func_definition : type_specifier ID LPAREN parameter_list RPAREN compound_statement \n");
 			$$ = new SymbolInfo("type_specifier ID LPAREN parameter_list RPAREN compound_statement", "func_definition");
 			$$->setStartLine($1->getStartLine());
@@ -419,16 +425,24 @@ func_definition : type_specifier ID LPAREN parameter_list RPAREN {insertFunction
 			$$->addChild($5);
 			$$->addChild(compRef);	
 
+			writeIntoTempFile(funcReturnLabel + ":");
 			writeIntoTempFile("\tADD SP, " + to_string(stackOffset));
 			writeIntoTempFile("\tPOP BP");
+			
 			if($2->getName() == "main"){
 				writeIntoTempFile("\tMOV AX,4CH");
 				writeIntoTempFile("\tINT 21H");					
+			} else {
+				if(funcParameterCount == 0) {
+					writeIntoTempFile("\tRET ");
+				} else {
+					writeIntoTempFile("\tRET " + to_string(funcParameterCount*2));
+				}
 			}
 			writeIntoTempFile($2->getName() + " ENDP");			
 
 }
-		| type_specifier ID LPAREN RPAREN {insertFunctionDefinition($1,$2); printFuncDefEntryCommands($2);stackOffset=0;} compound_statement {
+		| type_specifier ID LPAREN RPAREN {insertFunctionDefinition($1,$2); printFuncDefEntryCommands($2);funcParameterCount=0;isFunctionBeingDefined=true;funcReturnLabel="L"+to_string(++labelCount);stackOffset=0;} compound_statement {
 			fprintf(logout,"func_definition : type_specifier ID LPAREN RPAREN compound_statement \n");
 			$$ = new SymbolInfo("type_specifier ID LPAREN RPAREN compound_statement", "func_definition");
 			$$->setStartLine($1->getStartLine());
@@ -439,11 +453,18 @@ func_definition : type_specifier ID LPAREN parameter_list RPAREN {insertFunction
 			$$->addChild($4);
 			$$->addChild(compRef);
 
+			writeIntoTempFile(funcReturnLabel + ":");
 			writeIntoTempFile("\tADD SP, " + to_string(stackOffset));
 			writeIntoTempFile("\tPOP BP");
 			if($2->getName() == "main"){
 				writeIntoTempFile("\tMOV AX,4CH");
 				writeIntoTempFile("\tINT 21H");					
+			} else {
+				if(funcParameterCount == 0) {
+					writeIntoTempFile("\tRET ");
+				} else {
+					writeIntoTempFile("\tRET " + to_string(funcParameterCount*2));
+				}
 			}
 			writeIntoTempFile($2->getName() + " ENDP");	
 		}
@@ -963,6 +984,7 @@ statement : var_declaration {
 			writeIntoTempFile("\tPOP AX");
 			SymbolInfo* look = st.lookUp($3->getName());
 			string varName;
+			// in our grammer, we don't send an array as a parameter, so no worrries with that
 			if(look->getIsGlobalVariable()) {
 				writeIntoTempFile("\tSHL AX, 1");	
       			writeIntoTempFile("\tLEA SI, " + look->getName());
@@ -1010,6 +1032,11 @@ statement : var_declaration {
 					syntaxErrorCount++;
 				}
 			}
+
+			// icg code
+			writeIntoTempFile("; Line no: " + to_string($1->getStartLine()) + " -> in return");
+			writeIntoTempFile("\tPOP AX");
+			writeIntoTempFile("\tJMP " + funcReturnLabel);
 	  }
 	  ;
 	  
@@ -1060,6 +1087,7 @@ variable : ID {
 			$$->setVarName(look->getName());
 			$$->setIsArray(false);
 			$$->setStackOffset(look->getStackOffset());
+			$$->setIsParameter(look->getIsParameter());
 
 			// if(look->getIsGlobalVariable()) {
 			// 		$$->setVarName(look->getName());
@@ -1706,6 +1734,9 @@ factor	: variable {
 					}
 				}
 			}
+
+			writeIntoTempFile("\tCALL " + $1->getName());
+			writeIntoTempFile("\tPUSH AX");
 	}
 	| LPAREN expression RPAREN {
 			fprintf(logout,"factor : LPAREN expression RPAREN \n");
@@ -1861,6 +1892,8 @@ LCURL_ : LCURL {
 	vector<string> parameterList = scopeParameters.getParameterList();
 	vector<string> parameterTypeList = scopeParameters.getParameterTypeList();
 
+	int funcParamOffset = 4 + (parameterList.size() - 1) * 2; // starts with [BP +4]
+
 	for(int i=0;i<parameterList.size();i++){
 		string name = parameterList[i];
 		string type = parameterTypeList[i];
@@ -1872,10 +1905,20 @@ LCURL_ : LCURL {
 			syntaxErrorCount++;
 			break;
 		} else {
-			st.lookUp(name)->setTypeSpecifier(type);
+			SymbolInfo *look = st.lookUp(name);
+			look->setTypeSpecifier(type);
+			cout << "Hello " << isFunctionBeingDefined << endl;
+			if(isFunctionBeingDefined){
+				look->setIsParameter(true);				
+				look->setStackOffset(funcParamOffset);
+				funcParamOffset -= 2;
+				funcParameterCount++;
+			}
+			
 		}
 	}
 
+	isFunctionBeingDefined = false; // there may be different nested if and loop blocks
 	scopeParameters.clearParameters();
 }
 
