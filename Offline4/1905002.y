@@ -814,7 +814,7 @@ statement : var_declaration {
 			$$->addChild($1);
 
 	  }
-	  | FOR LPAREN expression_statement Marker expression_statement {writeForNonBooleanExpressions($5, false);} Marker Jumper Marker expression Jumper RPAREN Marker statement {
+	  | FOR LPAREN expression_statement Marker expression_statement {writeForNonBooleanExpressions($5, false);} Marker Jumper Marker expression {writeIntoTempFile("\tPOP AX");} Jumper RPAREN Marker statement {
 			fprintf(logout,"statement : FOR LPAREN expression_statement expression_statement expression RPAREN statement \n");
 			$$ = new SymbolInfo("FOR LPAREN expression_statement expression_statement expression RPAREN statement", "statement");
 			$$->setStartLine($1->getStartLine());
@@ -828,14 +828,14 @@ statement : var_declaration {
 			$$->addChild($8);
 			$$->addChild($9);
 			$$->addChild($10);
-			$$->addChild($11);
 			$$->addChild($12);
 			$$->addChild($13);
 			$$->addChild($14);
+			$$->addChild($15);
 
 			insertIntoLabelMap($5->getTrueList(), $7->getLabel());
-			insertIntoLabelMap($11->getNextList(), $4->getLabel());
-			insertIntoLabelMap($8->getNextList(), $13->getLabel());
+			insertIntoLabelMap($12->getNextList(), $4->getLabel());
+			insertIntoLabelMap($8->getNextList(), $14->getLabel());
 
 			$$->setNextList($5->getFalseList());
 
