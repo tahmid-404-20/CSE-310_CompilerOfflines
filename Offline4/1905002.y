@@ -24,7 +24,7 @@ long long tempFileLineCount = 0;
 long long labelCount = 0;
 
 
-FILE *errorout,*logout,*ptout,*fp, *codeout, *tempout;
+FILE *errorout,*logout,*ptout,*fp, *codeout, *tempout, *debugout;
 
 // define your global variables here
 
@@ -64,6 +64,7 @@ void yyerror(char *s)
 void writeIntoTempFile(const string s) {
 	fprintf(tempout, "%s\n", s.c_str());
 	tempFileLineCount++;
+	fprintf(debugout, "%s ; ---->Line no %d\n", s.c_str(), tempFileLineCount);
 }
 
 string getVarRightSide(SymbolInfo *varPointer) {
@@ -242,7 +243,9 @@ void printFuncDefEntryCommands(SymbolInfo *funcName) {
 	writeIntoTempFile("\tMOV DS, AX");
   }
 
-  writeIntoTempFile(functionEntryString);
+
+  writeIntoTempFile("\tPUSH BP");
+  writeIntoTempFile("\tMOV BP, SP");
 }
 
 string castType(SymbolInfo *leftSymbol, SymbolInfo *rightSymbol) {
@@ -854,9 +857,17 @@ statement : var_declaration {
 			$$->addChild($14);
 			$$->addChild($15);
 
+
 			insertIntoLabelMap($5->getTrueList(), $7->getLabel());
 			insertIntoLabelMap($12->getNextList(), $4->getLabel());
 			insertIntoLabelMap($8->getNextList(), $14->getLabel());
+
+			for(int i=0;i< $5->getTrueList().size(); i++) {
+				fprintf(errorout, "%d --> %s\n", $5->getTrueList()[i],  $7->getLabel().c_str());
+			}
+			for(int i=0;i< $12->getTrueList().size(); i++) {
+				fprintf(errorout, "%d --> %s\n", $12->getTrueList()[i], $4->getLabel().c_str());
+			}
 
 			$$->setNextList($5->getFalseList());
 
@@ -1938,6 +1949,7 @@ int main(int argc,char *argv[])
 		exit(1);
 	}
 
+	debugout = fopen("1905002_debug.asm","w");
 	codeout = fopen("1905002_code.asm","w");
 	tempout = fopen("1905002_tempCode.txt","w");
 	logout= fopen("1905002_log.txt","w");
@@ -1968,7 +1980,7 @@ int main(int argc,char *argv[])
   	int currentLineNo = 0;
   	while (getline(temp, line)) {
 		currentLineNo++;
-		code << line << labelMap[currentLineNo-1] << endl;
+		code << line << labelMap[currentLineNo] << endl;
   	}
 
 	code << printFunctionsFromSir << endl;
