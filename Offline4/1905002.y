@@ -24,7 +24,7 @@ long long tempFileLineCount = 0;
 long long labelCount = 0;
 
 
-FILE *errorout,*logout,*ptout,*fp, *codeout, *tempout, *debugout;
+FILE *fp, *codeout, *tempout, *debugout;
 
 // define your global variables here
 
@@ -100,7 +100,6 @@ void optimizeCode() {
 void writeIntoTempFile(const string s) {
 	fprintf(tempout, "%s\n", s.c_str());
 	tempFileLineCount++;
-	fprintf(debugout, "%s ; ---->Line no %d\n", s.c_str(), tempFileLineCount);
 }
 
 string getVarRightSide(SymbolInfo *varPointer) {
@@ -246,24 +245,20 @@ void insertFunctionDefinition(SymbolInfo *type_specifier, SymbolInfo *funcName,
   } else {
     SymbolInfo *lookUp = st.lookUp(funcName->getName());
     if (!lookUp->getIsFunction()) {
-      fprintf(errorout,
-              "Line# %d: '%s' redeclared as different kind of symbol\n",
-              funcName->getStartLine(), funcName->getName().c_str());
+      
       syntaxErrorCount++;
     } else if (lookUp->getIsFunctionDeclared()) { // declared but not defined
                                                   // yet, so this is probably
                                                   // the definition part
       if (type_specifier->getTypeSpecifier() != lookUp->getTypeSpecifier()) {
-        fprintf(errorout, "Line# %d: Conflicting types for '%s'\n",
-                type_specifier->getStartLine(), funcName->getName().c_str());
+        
         syntaxErrorCount++;
       } else if ((parameter_list == NULL &&
                   lookUp->getParameterList().size() != 0) ||
                  (parameter_list != NULL &&
                   lookUp->getParameterList().size() !=
                       parameter_list->getParameterList().size())) {
-        fprintf(errorout, "Line# %d: Conflicting types for '%s'\n",
-                funcName->getStartLine(), funcName->getName().c_str());
+        
         syntaxErrorCount++;
       } else {
         bool isOkay = true;
@@ -285,10 +280,6 @@ void insertFunctionDefinition(SymbolInfo *type_specifier, SymbolInfo *funcName,
         }
 
         if (!isOkay) {
-          fprintf(errorout,
-                  "Line# %d: Type of arguments in declaration and definition "
-                  "mismatch \n",
-                  funcName->getStartLine());
           syntaxErrorCount++;
         } else {
           // everything is okay, so set declared to false
@@ -297,8 +288,6 @@ void insertFunctionDefinition(SymbolInfo *type_specifier, SymbolInfo *funcName,
         }
       }
     } else { // declared and defined before
-      fprintf(errorout, "Line# %d: Conflicting types for '%s'\n",
-              funcName->getStartLine(), funcName->getName().c_str());
       syntaxErrorCount++;
     }
   }
@@ -355,7 +344,6 @@ start : program
 		$$->setEndLine($1->getEndLine());
 		$$->addChild($1);
 
-		printSyntaxTree(ptout, $$, 0);
 		clearMemSyntaxTree($$);
 		$$ = NULL;
 		compRef = NULL;
@@ -630,7 +618,7 @@ compound_statement : LCURL_ statements Marker RCURL {
 				compRef = $$;
 
 				// $$->setTypeSpecifier($2->getTypeSpecifier());
-				st.printAllScopeTable(logout);
+				
 				st.exitScope();
 
 				insertIntoLabelMap($2->getNextList(), $3->getLabel());
@@ -644,7 +632,6 @@ compound_statement : LCURL_ statements Marker RCURL {
 				
 				compRef = $$;
 				
-				st.printAllScopeTable(logout);
 				st.exitScope();
 			}
  		    ;
@@ -1699,8 +1686,6 @@ factor	: variable {
 							bool isTypeMatch = true;
 							for(int i = 0; i < nParameters; i++) {
 								if($3->getParameterTypeList()[i] != lookUp->getParameterTypeList()[i]) {
-																		// fprintf(errorout, "Line# %d: Type func def '%s' ,  type arg '%s' argNo- %d\n", $1->getStartLine(), 
-									// $3->getParameterTypeList()[i].c_str(), lookUp->getParameterTypeList()[i].c_str(), $1->getName().c_str());
 									syntaxErrorCount++;
 									$$->setTypeSpecifier("error");
 									isTypeMatch = false;									
@@ -1908,21 +1893,14 @@ int main(int argc,char *argv[])
 		exit(1);
 	}
 
-	debugout = fopen("1905002_debug.asm","w");
 	codeout = fopen("1905002_code.asm","w");
 	tempout = fopen("1905002_tempCode.txt","w");
-	logout= fopen("1905002_log.txt","w");
-	errorout = fopen("1905002_error.txt","w");
-	ptout = fopen("1905002_parsetree.txt","w");	
 
 	/* yylineno = 1; */
 	yyin=fp;
 	yyparse();
 	
 		
-	fclose(logout);
-	fclose(errorout);
-	fclose(ptout);
 	fclose(codeout);
 	fclose(tempout);
 
