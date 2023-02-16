@@ -61,6 +61,42 @@ void yyerror(char *s)
 	lastSyntaxErrorLine = yylineno;
 }
 
+
+void optimizeCode() {
+	ifstream code;
+	ofstream optimizedCode;
+
+	code.open("1905002_code.asm");
+	optimizedCode.open("1905002_optimizedCode.asm", ios::out);
+		
+	string tempLine;
+	string line;
+
+
+  	while (getline(code, line)) {
+		if(line[0] == ';') {
+			continue;
+		}
+		if(line == "\tPUSH AX") {
+			getline(code, tempLine);
+			if(tempLine[0] == ';') {
+				getline(code, tempLine);
+			}
+			if(tempLine == "\tPOP AX") {
+				continue;
+			} else {
+				optimizedCode << line << endl;
+				optimizedCode << tempLine << endl;
+			}
+		} else {
+			optimizedCode << line << endl;
+		}
+  	}
+
+	code.close();
+	optimizedCode.close();
+}
+
 void writeIntoTempFile(const string s) {
 	fprintf(tempout, "%s\n", s.c_str());
 	tempFileLineCount++;
@@ -1984,6 +2020,11 @@ int main(int argc,char *argv[])
   	}
 
 	code << printFunctionsFromSir << endl;
+
+	temp.close();
+	code.close();
+
+	optimizeCode();
 	// setting the global variable to NULL
 	compRef = NULL;
 	return 0;
