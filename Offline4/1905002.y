@@ -180,6 +180,38 @@ void writeForNonBooleanExpressions(SymbolInfo* expression, bool doPop = true) {
 	expression->mergeFalseList(falseList);
 }
 
+void evaluateBooleanExpression(SymbolInfo* expression) {
+	if(expression->getIsBoolean()) {
+		writeIntoTempFile("; Line no: " + to_string(expression->getStartLine()) + " (Boolean Expression)");
+
+		string label1 = "L" + to_string(++labelCount);
+		vector<long> tList = expression->getTrueList();
+		for(int i=0;i<tList.size();i++) {
+			labelMap[tList[i]] = label1;
+		}  // backpatching
+		writeIntoTempFile(label1 + ":");
+		writeIntoTempFile("\tMOV AX, 1");
+				
+		string jumpLabel = "L" + to_string(++labelCount);
+		writeIntoTempFile("\tJMP " + jumpLabel);
+				
+		string label2 = "L" + to_string(++labelCount);
+		// insertIntoLabelMap($expression->getFalseList(), label2);  // backpatching, I have no idea why this generates segmentation fault
+		vector<long> fList = expression->getFalseList();
+		for(int i=0;i<fList.size();i++) {
+			labelMap[fList[i]] = label2;
+		}
+
+		writeIntoTempFile(label2 + ":");
+		writeIntoTempFile("\tMOV AX, 0");
+
+		writeIntoTempFile(jumpLabel + ":");
+
+		writeIntoTempFile("\tPUSH AX");
+		
+	}
+}
+
 string getRelopJumpStatements(string relString) {
 	if(relString == "<")
 		return "JL";
@@ -1798,10 +1830,12 @@ factor	: variable {
 
 			$$->setTypeSpecifier($2->getTypeSpecifier());
 
-			$$->setIsBoolean($2->getIsBoolean());
-  			$$->setTrueList($2->getTrueList());
-  			$$->setFalseList($2->getFalseList());
-  			$$->setNextList($2->getNextList());
+			// $$->setIsBoolean($2->getIsBoolean());
+  			// $$->setTrueList($2->getTrueList());
+  			// $$->setFalseList($2->getFalseList());
+  			// $$->setNextList($2->getNextList());
+
+			evaluateBooleanExpression($2);
 	}
 	| CONST_INT {
 			fprintf(logout,"factor : CONST_INT \n");
@@ -1954,7 +1988,6 @@ LCURL_ : LCURL {
 		} else {
 			SymbolInfo *look = st.lookUp(name);
 			look->setTypeSpecifier(type);
-			cout << "Hello " << isFunctionBeingDefined << endl;
 			if(isFunctionBeingDefined){
 				look->setIsParameter(true);				
 				look->setStackOffset(funcParamOffset);
