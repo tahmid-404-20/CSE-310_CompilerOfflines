@@ -350,8 +350,7 @@ string castType(SymbolInfo *leftSymbol, SymbolInfo *rightSymbol) {
 start : program
 	{
 		//write your code in this block in all the similar blocks below
-		fprintf(logout,"start : program \n");
-		$$ = new SymbolInfo("program", "start");
+				$$ = new SymbolInfo("program", "start");
 		$$->setStartLine($1->getStartLine());
 		$$->setEndLine($1->getEndLine());
 		$$->addChild($1);
@@ -378,16 +377,14 @@ start : program
 	;
 
 program : program unit {
-			fprintf(logout,"program : program unit \n");
-			$$ = new SymbolInfo("program unit", "program");
+						$$ = new SymbolInfo("program unit", "program");
 			$$->setStartLine($1->getStartLine());
 			$$->setEndLine($2->getEndLine());
 			$$->addChild($1);
 			$$->addChild($2);
 }
 	| unit {
-		fprintf(logout,"program : unit \n");
-		$$ = new SymbolInfo("unit", "program");
+				$$ = new SymbolInfo("unit", "program");
 		$$->setStartLine($1->getStartLine());
 		$$->setEndLine($1->getEndLine());
 		$$->addChild($1);
@@ -395,22 +392,19 @@ program : program unit {
 	;
 	
 unit : var_declaration {
-			fprintf(logout,"unit : var_declaration  \n");
-			$$ = new SymbolInfo("var_declaration", "unit");
+						$$ = new SymbolInfo("var_declaration", "unit");
 			$$->setStartLine($1->getStartLine());
 			$$->setEndLine($1->getEndLine());
 			$$->addChild($1);
 	}
      | func_declaration {
-			fprintf(logout,"unit : func_declaration \n");
-			$$ = new SymbolInfo("func_declaration", "unit");
+						$$ = new SymbolInfo("func_declaration", "unit");
 			$$->setStartLine($1->getStartLine());
 			$$->setEndLine($1->getEndLine());
 			$$->addChild($1);
 	 }
      | func_definition {
-			fprintf(logout,"unit : func_definition \n");
-			$$ = new SymbolInfo("func_definition", "unit");
+						$$ = new SymbolInfo("func_definition", "unit");
 			$$->setStartLine($1->getStartLine());
 			$$->setEndLine($1->getEndLine());
 			$$->addChild($1);
@@ -418,8 +412,7 @@ unit : var_declaration {
      ;
      
 func_declaration : type_specifier ID LPAREN parameter_list RPAREN SEMICOLON {
-			fprintf(logout,"func_declaration : type_specifier ID LPAREN parameter_list RPAREN SEMICOLON \n");
-			$$ = new SymbolInfo("type_specifier ID LPAREN parameter_list RPAREN SEMICOLON", "func_declaration");
+						$$ = new SymbolInfo("type_specifier ID LPAREN parameter_list RPAREN SEMICOLON", "func_declaration");
 			$$->setStartLine($1->getStartLine());
 			$$->setEndLine($6->getEndLine());
 			$$->addChild($1);
@@ -435,12 +428,10 @@ func_declaration : type_specifier ID LPAREN parameter_list RPAREN SEMICOLON {
 				if(!isInserted) {
 					SymbolInfo* looked = st.lookUp($2->getName());
 					if(looked->getIsFunction()) {
-						fprintf(errorout, "Line %d: '%s' redeclared as different kind of symbol\n", $2->getStartLine(), $2->getName().c_str());
-						syntaxErrorCount++;
+												syntaxErrorCount++;
 						$$->setTypeSpecifier("error");
 					} else {
-						fprintf(errorout, "Line %d: Conflicting types for '%s'\n", $2->getStartLine(), $2->getName().c_str());
-						syntaxErrorCount++;
+												syntaxErrorCount++;
 						$$->setTypeSpecifier("error");
 					}
 				} else {
@@ -453,8 +444,7 @@ func_declaration : type_specifier ID LPAREN parameter_list RPAREN SEMICOLON {
 			}
 		}
 		| type_specifier ID LPAREN RPAREN SEMICOLON {
-			fprintf(logout,"func_declaration : type_specifier ID LPAREN RPAREN SEMICOLON \n");
-			$$ = new SymbolInfo("type_specifier ID LPAREN RPAREN SEMICOLON", "func_declaration");
+						$$ = new SymbolInfo("type_specifier ID LPAREN RPAREN SEMICOLON", "func_declaration");
 			$$->setStartLine($1->getStartLine());
 			$$->setEndLine($5->getEndLine());
 			$$->addChild($1);
@@ -467,12 +457,10 @@ func_declaration : type_specifier ID LPAREN parameter_list RPAREN SEMICOLON {
 			if(!isInserted) {
 					SymbolInfo* looked = st.lookUp($2->getName());
 					if(looked->getIsFunction()) {
-						fprintf(errorout, "Line %d: '%s' redeclared as different kind of symbol\n", $2->getStartLine(), $2->getName().c_str());
-						syntaxErrorCount++;
+												syntaxErrorCount++;
 						$$->setTypeSpecifier("error");
 					} else {
-						fprintf(errorout, "Line %d: Conflicting types for '%s'\n", $2->getStartLine(), $2->getName().c_str());
-						syntaxErrorCount++;
+												syntaxErrorCount++;
 						$$->setTypeSpecifier("error");
 					}
 			} else {
@@ -485,8 +473,7 @@ func_declaration : type_specifier ID LPAREN parameter_list RPAREN SEMICOLON {
 		;
 		 
 func_definition : type_specifier ID LPAREN parameter_list RPAREN {insertFunctionDefinition($1,$2,$4);printFuncDefEntryCommands($2);funcParameterCount=0;isFunctionBeingDefined=true;funcReturnLabel="L"+to_string(++labelCount);stackOffset=0;} compound_statement{
-			fprintf(logout,"func_definition : type_specifier ID LPAREN parameter_list RPAREN compound_statement \n");
-			$$ = new SymbolInfo("type_specifier ID LPAREN parameter_list RPAREN compound_statement", "func_definition");
+						$$ = new SymbolInfo("type_specifier ID LPAREN parameter_list RPAREN compound_statement", "func_definition");
 			$$->setStartLine($1->getStartLine());
 			$$->setEndLine(compRef->getEndLine());
 			$$->addChild($1);
@@ -514,8 +501,7 @@ func_definition : type_specifier ID LPAREN parameter_list RPAREN {insertFunction
 
 }
 		| type_specifier ID LPAREN RPAREN {insertFunctionDefinition($1,$2); printFuncDefEntryCommands($2);funcParameterCount=0;isFunctionBeingDefined=true;funcReturnLabel="L"+to_string(++labelCount);stackOffset=0;} compound_statement {
-			fprintf(logout,"func_definition : type_specifier ID LPAREN RPAREN compound_statement \n");
-			$$ = new SymbolInfo("type_specifier ID LPAREN RPAREN compound_statement", "func_definition");
+						$$ = new SymbolInfo("type_specifier ID LPAREN RPAREN compound_statement", "func_definition");
 			$$->setStartLine($1->getStartLine());
 			$$->setEndLine(compRef->getEndLine());
 			$$->addChild($1);
@@ -540,8 +526,7 @@ func_definition : type_specifier ID LPAREN parameter_list RPAREN {insertFunction
 			writeIntoTempFile($2->getName() + " ENDP");	
 		}
 		| type_specifier ID LPAREN error RPAREN compound_statement {
-			fprintf(logout,"Error at line no %d : Syntax Error\n", lastSyntaxErrorLine);
-			$$ = new SymbolInfo("type_specifier ID LPAREN parameter_list RPAREN", "func_definition");
+						$$ = new SymbolInfo("type_specifier ID LPAREN parameter_list RPAREN", "func_definition");
 			$$->setStartLine($1->getStartLine());
 			$$->setEndLine($5->getEndLine());
 			$$->addChild($1);
@@ -556,14 +541,12 @@ func_definition : type_specifier ID LPAREN parameter_list RPAREN {insertFunction
 
 			clearMemSyntaxTree($6);
 
-			fprintf(errorout, "Line# %d: Syntax error at parameter list of function definition\n", lastSyntaxErrorLine);
-			syntaxErrorCount++;
+						syntaxErrorCount++;
 		}
  		;
 
 parameter_list  : parameter_list COMMA type_specifier ID {
-			fprintf(logout,"parameter_list : parameter_list COMMA type_specifier ID \n");
-			$$ = new SymbolInfo("parameter_list COMMA type_specifier ID", "parameter_list");
+						$$ = new SymbolInfo("parameter_list COMMA type_specifier ID", "parameter_list");
 			$$->setStartLine($1->getStartLine());
 			$$->setEndLine($4->getEndLine());
 			$$->addChild($1);
@@ -574,8 +557,7 @@ parameter_list  : parameter_list COMMA type_specifier ID {
 			$$->setParameters($1->getParameterList(), $1->getParameterTypeList());
 
 			if($3->getTypeSpecifier() == "VOID"){
-				fprintf(errorout,"Line #%d: Function parameter can not be void \n");
-				syntaxErrorCount++;
+								syntaxErrorCount++;
 				$$->setTypeSpecifier("error");
 			} else {
 				$$->addParameter($4->getName(), $3->getTypeSpecifier());
@@ -583,8 +565,7 @@ parameter_list  : parameter_list COMMA type_specifier ID {
 			}
 		}
 		| parameter_list COMMA type_specifier {
-			fprintf(logout,"parameter_list : parameter_list COMMA type_specifier \n");
-			$$ = new SymbolInfo("parameter_list COMMA type_specifier", "parameter_list");
+						$$ = new SymbolInfo("parameter_list COMMA type_specifier", "parameter_list");
 			$$->setStartLine($1->getStartLine());
 			$$->setEndLine($3->getEndLine());
 			$$->addChild($1);
@@ -594,8 +575,7 @@ parameter_list  : parameter_list COMMA type_specifier ID {
 			$$->setParameters($1->getParameterList(), $1->getParameterTypeList());
 
 			if($3->getTypeSpecifier() == "VOID"){
-				fprintf(errorout,"Line #%d: Function parameter can not be void \n");
-				syntaxErrorCount++;
+								syntaxErrorCount++;
 				$$->setTypeSpecifier("error");
 			} else {
 				$$->addParameter("", $3->getTypeSpecifier()); // checked at entering scope
@@ -603,8 +583,7 @@ parameter_list  : parameter_list COMMA type_specifier ID {
 			}
 		}
  		| type_specifier ID {
-			fprintf(logout,"parameter_list : type_specifier ID\n");
-			$$ = new SymbolInfo("type_specifier ID", "parameter_list");
+						$$ = new SymbolInfo("type_specifier ID", "parameter_list");
 			$$->setStartLine($1->getStartLine());
 			$$->setEndLine($2->getEndLine());
 			$$->addChild($1);
@@ -612,8 +591,7 @@ parameter_list  : parameter_list COMMA type_specifier ID {
 			
 			scopeParameters.clearParameters();
 			if($1->getTypeSpecifier() == "VOID"){
-				fprintf(errorout,"Line #%d: Function parameter can not be void \n");
-				syntaxErrorCount++;
+								syntaxErrorCount++;
 				$$->setTypeSpecifier("error");
 			} else {
 				$$->addParameter($2->getName(), $1->getTypeSpecifier());
@@ -621,8 +599,7 @@ parameter_list  : parameter_list COMMA type_specifier ID {
 			}
 		}
 		| type_specifier {
-			fprintf(logout,"parameter_list : type_specifier \n");
-			$$ = new SymbolInfo("type_specifier", "parameter_list");
+						$$ = new SymbolInfo("type_specifier", "parameter_list");
 			$$->setStartLine($1->getStartLine());
 			$$->setEndLine($1->getEndLine());
 			$$->addChild($1);
@@ -630,8 +607,7 @@ parameter_list  : parameter_list COMMA type_specifier ID {
 			scopeParameters.clearParameters();
 
 			if($1->getTypeSpecifier() == "VOID"){
-				fprintf(errorout,"Line #%d: Function parameter can not be void \n");
-				syntaxErrorCount++;
+								syntaxErrorCount++;
 				$$->setTypeSpecifier("error");
 			} else {
 				// $$->setTypeSpecifier($1->getTypeSpecifier());
@@ -643,8 +619,7 @@ parameter_list  : parameter_list COMMA type_specifier ID {
 
  		
 compound_statement : LCURL_ statements Marker RCURL {
-				fprintf(logout,"compound_statement : LCURL statements RCURL \n");
-				$$ = new SymbolInfo("LCURL statements RCURL", "compound_statement");
+								$$ = new SymbolInfo("LCURL statements RCURL", "compound_statement");
 				$$->setStartLine($1->getStartLine());
 				$$->setEndLine($3->getEndLine());
 				$$->addChild($1->getChildList()[0]);
@@ -661,8 +636,7 @@ compound_statement : LCURL_ statements Marker RCURL {
 				insertIntoLabelMap($2->getNextList(), $3->getLabel());
 			}
  		    | LCURL_ RCURL {
-				fprintf(logout,"compound_statement : LCURL RCURL \n");
-				$$ = new SymbolInfo("LCURL RCURL", "compound_statement");
+								$$ = new SymbolInfo("LCURL RCURL", "compound_statement");
 				$$->setStartLine($1->getStartLine());
 				$$->setEndLine($2->getEndLine());
 				$$->addChild($1->getChildList()[0]);
@@ -676,8 +650,7 @@ compound_statement : LCURL_ statements Marker RCURL {
  		    ;
  		    
 var_declaration : type_specifier declaration_list SEMICOLON {
-			fprintf(logout,"var_declaration : type_specifier declaration_list SEMICOLON  \n");
-			$$ = new SymbolInfo("type_specifier declaration_list SEMICOLON", "var_declaration");
+						$$ = new SymbolInfo("type_specifier declaration_list SEMICOLON", "var_declaration");
 			$$->setStartLine($1->getStartLine());
 			$$->setEndLine($3->getEndLine());
 			$$->addChild($1);
@@ -687,8 +660,7 @@ var_declaration : type_specifier declaration_list SEMICOLON {
 			if($1->getName() == "VOID") {
 				vector<string> variables = $2->getDeclarations();
 				for(auto variable:variables) {
-					fprintf(errorout, "Line# %d: Variable or field '%s' declared void\n", yylineno, variable.c_str());
-					syntaxErrorCount++;
+										syntaxErrorCount++;
 				}
 			} else {
 				vector<string> variables = $2->getDeclarations();
@@ -701,11 +673,9 @@ var_declaration : type_specifier declaration_list SEMICOLON {
 						SymbolInfo* lookUp = st.lookUp(variables[i]);
 
 						if(lookUp->getIsFunction()) {
-							fprintf(errorout, "Line# %d: '%s' redeclared as different kind of symbol\n", yylineno, variables[i].c_str());
-							syntaxErrorCount++;
+														syntaxErrorCount++;
 						} else {
-							fprintf(errorout, "Line# %d: Conflicting types for '%s'\n", yylineno, variables[i].c_str());
-							syntaxErrorCount++;
+														syntaxErrorCount++;
 						}						
 					} else {
 						SymbolInfo *look = st.lookUp(variables[i]);
@@ -738,8 +708,7 @@ var_declaration : type_specifier declaration_list SEMICOLON {
 			}
 		}
 		| type_specifier error SEMICOLON {
-			fprintf(logout,"Error at line no %d : Syntax Error\n", lastSyntaxErrorLine);
-			$$ = new SymbolInfo("type_specifier declaration_list SEMICOLON", "var_declaration");
+						$$ = new SymbolInfo("type_specifier declaration_list SEMICOLON", "var_declaration");
 			$$->setStartLine($1->getStartLine());
 			$$->setEndLine($3->getEndLine());
 			$$->addChild($1);
@@ -750,15 +719,13 @@ var_declaration : type_specifier declaration_list SEMICOLON {
 			$$->addChild(temp);
 			$$->addChild($3);
 
-			fprintf(errorout, "Line# %d: Syntax error at declaration list of variable declaration\n", lastSyntaxErrorLine);
-			syntaxErrorCount++;										
+						syntaxErrorCount++;										
 
 		}
  		 ;
  		 
 type_specifier	: INT {
-			fprintf(logout,"type_specifier\t: INT \n");
-			$$ = new SymbolInfo("INT", "type_specifier");
+						$$ = new SymbolInfo("INT", "type_specifier");
 			$$->setStartLine($1->getStartLine());
 			$$->setEndLine($1->getEndLine());
 			$$->addChild($1);
@@ -766,8 +733,7 @@ type_specifier	: INT {
 			$$->setTypeSpecifier("INT");
 		}
  		| FLOAT {
-			fprintf(logout,"type_specifier\t: FLOAT \n");
-			$$ = new SymbolInfo("FLOAT", "type_specifier");
+						$$ = new SymbolInfo("FLOAT", "type_specifier");
 			$$->setStartLine($1->getStartLine());
 			$$->setEndLine($1->getEndLine());
 			$$->addChild($1);
@@ -775,8 +741,7 @@ type_specifier	: INT {
 			$$->setTypeSpecifier("FLOAT");
 		}
  		| VOID {
-			fprintf(logout,"type_specifier\t: VOID \n");
-			$$ = new SymbolInfo("VOID", "type_specifier");
+						$$ = new SymbolInfo("VOID", "type_specifier");
 			$$->setStartLine($1->getStartLine());
 			$$->setEndLine($1->getEndLine());
 			$$->addChild($1);
@@ -786,8 +751,7 @@ type_specifier	: INT {
  		;
  		
 declaration_list : declaration_list COMMA ID {
-			fprintf(logout,"declaration_list : declaration_list COMMA ID  \n");
-			$$ = new SymbolInfo("declaration_list COMMA ID", "declaration_list");			
+						$$ = new SymbolInfo("declaration_list COMMA ID", "declaration_list");			
 			$$->setStartLine($1->getStartLine());
 			$$->setEndLine($3->getEndLine());
 			$$->addChild($1);
@@ -800,8 +764,7 @@ declaration_list : declaration_list COMMA ID {
 			$$->addDeclaration($3->getName());
 		}
  		  | declaration_list COMMA ID LSQUARE CONST_INT RSQUARE {
-			fprintf(logout,"declaration_list : declaration_list COMMA ID LSQUARE CONST_INT RSQUARE \n");
-			$$ = new SymbolInfo("declaration_list COMMA ID LSQUARE CONST_INT RSQUARE", "declaration_list");
+						$$ = new SymbolInfo("declaration_list COMMA ID LSQUARE CONST_INT RSQUARE", "declaration_list");
 			$$->setStartLine($1->getStartLine());
 			$$->setEndLine($6->getEndLine());
 			$$->addChild($1);
@@ -818,8 +781,7 @@ declaration_list : declaration_list COMMA ID {
 
 		  }
  		  | ID {
-			fprintf(logout,"declaration_list : ID \n");
-			$$ = new SymbolInfo("ID", "declaration_list");			
+						$$ = new SymbolInfo("ID", "declaration_list");			
 			$$->setStartLine($1->getStartLine());
 			$$->setEndLine($1->getEndLine());
 			$$->addChild($1);
@@ -827,8 +789,7 @@ declaration_list : declaration_list COMMA ID {
 			$$->addDeclaration($1->getName());
 		  }
  		  | ID LSQUARE CONST_INT RSQUARE {
-			fprintf(logout,"declaration_list : ID LSQUARE CONST_INT RSQUARE \n");
-			$$ = new SymbolInfo("ID LSQUARE CONST_INT RSQUARE", "declaration_list");			
+						$$ = new SymbolInfo("ID LSQUARE CONST_INT RSQUARE", "declaration_list");			
 			$$->setStartLine($1->getStartLine());
 			$$->setEndLine($4->getEndLine());
 			$$->addChild($1);
@@ -841,8 +802,7 @@ declaration_list : declaration_list COMMA ID {
  		  ;
  		  
 statements : statement {
-			fprintf(logout,"statements : statement \n");
-			$$ = new SymbolInfo("statement", "statements");
+						$$ = new SymbolInfo("statement", "statements");
 			$$->setStartLine($1->getStartLine());
 			$$->setEndLine($1->getEndLine());
 			$$->addChild($1);
@@ -850,8 +810,7 @@ statements : statement {
 			$$->setNextList($1->getNextList());
 }      
 	   | statements Marker statement {
-			fprintf(logout,"statements : statements statement \n");
-			$$ = new SymbolInfo("statements statement", "statements");
+						$$ = new SymbolInfo("statements statement", "statements");
 			$$->setStartLine($1->getStartLine());
 			$$->setEndLine($2->getEndLine());
 			$$->addChild($1);
@@ -883,32 +842,28 @@ non_boolean_if: {
 		}
 
 statement : var_declaration {
-			fprintf(logout,"statement : var_declaration \n");
-			$$ = new SymbolInfo("var_declaration", "statement");
+						$$ = new SymbolInfo("var_declaration", "statement");
 			$$->setStartLine($1->getStartLine());
 			$$->setEndLine($1->getEndLine());
 			$$->addChild($1);
 
 	}
 	  | expression_statement {
-			fprintf(logout,"statement : expression_statement \n");
-			$$ = new SymbolInfo("expression_statement", "statement");
+						$$ = new SymbolInfo("expression_statement", "statement");
 			$$->setStartLine($1->getStartLine());
 			$$->setEndLine($1->getEndLine());
 			$$->addChild($1);
 
 	  }
 	  | compound_statement {
-			fprintf(logout,"statement : compound_statement \n");
-			$$ = new SymbolInfo("compound_statement", "statement");
+						$$ = new SymbolInfo("compound_statement", "statement");
 			$$->setStartLine($1->getStartLine());
 			$$->setEndLine($1->getEndLine());
 			$$->addChild($1);
 
 	  }
 	  | FOR LPAREN expression_statement Marker expression_statement {writeForNonBooleanExpressions($5, false);} Marker Jumper Marker expression {writeIntoTempFile("\tPOP AX");} Jumper RPAREN Marker statement {
-			fprintf(logout,"statement : FOR LPAREN expression_statement expression_statement expression RPAREN statement \n");
-			$$ = new SymbolInfo("FOR LPAREN expression_statement expression_statement expression RPAREN statement", "statement");
+						$$ = new SymbolInfo("FOR LPAREN expression_statement expression_statement expression RPAREN statement", "statement");
 			$$->setStartLine($1->getStartLine());
 			$$->setEndLine($7->getEndLine());
 			$$->addChild($1);
@@ -931,11 +886,9 @@ statement : var_declaration {
 			insertIntoLabelMap($8->getNextList(), $14->getLabel());
 
 			for(int i=0;i< $5->getTrueList().size(); i++) {
-				fprintf(errorout, "%d --> %s\n", $5->getTrueList()[i],  $7->getLabel().c_str());
-			}
+							}
 			for(int i=0;i< $12->getTrueList().size(); i++) {
-				fprintf(errorout, "%d --> %s\n", $12->getTrueList()[i], $4->getLabel().c_str());
-			}
+							}
 
 			$$->setNextList($5->getFalseList());
 
@@ -943,8 +896,7 @@ statement : var_declaration {
 
 	  }
 	  | IF LPAREN expression RPAREN non_boolean_if Marker statement %prec LOWER_THAN_ELSE {
-			fprintf(logout,"statement : IF LPAREN expression RPAREN statement \n");
-			$$ = new SymbolInfo("IF LPAREN expression RPAREN statement", "statement");
+						$$ = new SymbolInfo("IF LPAREN expression RPAREN statement", "statement");
 			$$->setStartLine($1->getStartLine());
 			$$->setEndLine($5->getEndLine());
 			$$->addChild($1);
@@ -962,8 +914,7 @@ statement : var_declaration {
 			
 	  }
 	  | IF LPAREN expression RPAREN non_boolean_if Marker statement ELSE Jumper Marker statement {
-			fprintf(logout,"statement : IF LPAREN expression RPAREN statement ELSE statement \n");
-			$$ = new SymbolInfo("IF LPAREN expression RPAREN statement ELSE statement", "statement");
+						$$ = new SymbolInfo("IF LPAREN expression RPAREN statement ELSE statement", "statement");
 			$$->setStartLine($1->getStartLine());
 			$$->setEndLine($7->getEndLine());
 			$$->addChild($1);
@@ -986,8 +937,7 @@ statement : var_declaration {
 			$$->mergeNextList($11->getNextList());
 	  }
 	  | WHILE LPAREN Marker expression {writeForNonBooleanExpressions($4);} RPAREN Marker statement{
-			fprintf(logout,"statement : WHILE LPAREN expression RPAREN statement \n");
-			$$ = new SymbolInfo("WHILE LPAREN expression RPAREN statement", "statement");
+						$$ = new SymbolInfo("WHILE LPAREN expression RPAREN statement", "statement");
 			$$->setStartLine($1->getStartLine());
 			$$->setEndLine($8->getEndLine());
 			$$->addChild($1);
@@ -1008,8 +958,7 @@ statement : var_declaration {
 
 	  }
 	  | PRINTLN LPAREN ID RPAREN SEMICOLON {
-			fprintf(logout,"statement : PRINTLN LPAREN ID RPAREN SEMICOLON \n");
-			$$ = new SymbolInfo("PRINTLN LPAREN ID RPAREN SEMICOLON", "statement");
+						$$ = new SymbolInfo("PRINTLN LPAREN ID RPAREN SEMICOLON", "statement");
 			$$->setStartLine($1->getStartLine());
 			$$->setEndLine($5->getEndLine());
 			$$->addChild($1);
@@ -1020,8 +969,7 @@ statement : var_declaration {
 
 			// include some things later
 			if(st.lookUp($3->getName()) == NULL){
-				fprintf(errorout,"Line #%d: Undeclared variable %s\n", $1->getStartLine(), $3->getName().c_str());
-				syntaxErrorCount++;
+								syntaxErrorCount++;
 			}
 
 			// icg code
@@ -1039,8 +987,7 @@ statement : var_declaration {
 			writeIntoTempFile("\tCALL new_line");
 	  }
 	  | PRINTLN LPAREN ID LSQUARE expression RSQUARE RPAREN SEMICOLON {
-			fprintf(logout,"statement : PRINTLN LPAREN ID LSQUARE expression RSQUARE RPAREN SEMICOLON \n");
-			$$ = new SymbolInfo("PRINTLN LPAREN ID LSQUARE expression RSQUARE RPAREN SEMICOLON", "statement");
+						$$ = new SymbolInfo("PRINTLN LPAREN ID LSQUARE expression RSQUARE RPAREN SEMICOLON", "statement");
 			$$->setStartLine($1->getStartLine());
 			$$->setEndLine($8->getEndLine());
 			$$->addChild($1);
@@ -1054,8 +1001,7 @@ statement : var_declaration {
 
 			// include some things later
 			if(st.lookUp($3->getName()) == NULL){
-				fprintf(errorout,"Line #%d: Undeclared variable %s\n", $1->getStartLine(), $3->getName().c_str());
-				syntaxErrorCount++;
+								syntaxErrorCount++;
 			}
 
 			// icg code
@@ -1086,8 +1032,7 @@ statement : var_declaration {
 
 		}
 		| RETURN expression SEMICOLON {
-			fprintf(logout,"statement : RETURN expression SEMICOLON \n");
-			$$ = new SymbolInfo("RETURN expression SEMICOLON", "statement");
+						$$ = new SymbolInfo("RETURN expression SEMICOLON", "statement");
 			$$->setStartLine($1->getStartLine());
 			$$->setEndLine($3->getEndLine());
 			$$->addChild($1);
@@ -1098,17 +1043,14 @@ statement : var_declaration {
 			// return type checking
 			string type = $2->getTypeSpecifier();
 			if(type == "VOID"){
-				fprintf(errorout,"Line #%d: Void cannot be used in expression \n", $1->getStartLine());
-				syntaxErrorCount++;
+								syntaxErrorCount++;
 			} else if(funcReturnType == "VOID") {
-				fprintf(errorout,"Line# %d: Non void return expression in void function \n", $1->getStartLine());
-				syntaxErrorCount++;
+								syntaxErrorCount++;
 			} else if(funcReturnType == "FLOAT" && type == "INT") {
 				// ok
 			} else {
 				if(funcReturnType != type) {
-					fprintf(errorout,"Line #%d: Return type mismatch \n", $1->getStartLine());
-					syntaxErrorCount++;
+										syntaxErrorCount++;
 				}
 			}
 
@@ -1120,8 +1062,7 @@ statement : var_declaration {
 	  ;
 	  
 expression_statement 	: SEMICOLON	{
-				fprintf(logout,"expression_statement : SEMICOLON \n");
-				$$ = new SymbolInfo("SEMICOLON", "expression_statement");
+								$$ = new SymbolInfo("SEMICOLON", "expression_statement");
 				$$->setStartLine($1->getStartLine());
 				$$->setEndLine($1->getEndLine());
 				$$->addChild($1);
@@ -1132,8 +1073,7 @@ expression_statement 	: SEMICOLON	{
 				writeIntoTempFile("\tPOP AX");    // returning the stack to prev situation
 			}		
 			| expression SEMICOLON {
-				fprintf(logout,"expression_statement : expression SEMICOLON \n");
-				$$ = new SymbolInfo("expression SEMICOLON", "expression_statement");
+								$$ = new SymbolInfo("expression SEMICOLON", "expression_statement");
 				$$->setStartLine($1->getStartLine());
 				$$->setEndLine($2->getEndLine());
 				$$->addChild($1);
@@ -1154,8 +1094,7 @@ expression_statement 	: SEMICOLON	{
 			;
 	  
 variable : ID {
-			fprintf(logout,"variable : ID \n");
-			$$ = new SymbolInfo("ID", "variable");
+						$$ = new SymbolInfo("ID", "variable");
 			$$->setStartLine($1->getStartLine());
 			$$->setEndLine($1->getEndLine());
 			$$->addChild($1);
@@ -1175,12 +1114,10 @@ variable : ID {
 			// 	$$->setVarName(varName);
 			// }		
 			/*if(!look) {
-				fprintf(errorout, "Line# %d: Undeclared variable '%s'\n", $1->getStartLine(), $1->getName().c_str());
-				syntaxErrorCount++;
+								syntaxErrorCount++;
 				$$->setTypeSpecifier("error");
 			} else if(look->getIsFunction() == true) {
-				fprintf(errorout, "Line# %d: '%s' is a function\n", $1->getStartLine(), $1->getName().c_str());
-				syntaxErrorCount++;
+								syntaxErrorCount++;
 				$$->setTypeSpecifier("error");
 			} else {
 				$$->setTypeSpecifier(look->getTypeSpecifier());
@@ -1192,8 +1129,7 @@ variable : ID {
 			}*/
 	}		
 	 | ID LSQUARE expression RSQUARE {
-			fprintf(logout,"variable : ID LSQUARE expression RSQUARE \n");
-			$$ = new SymbolInfo("ID LSQUARE expression RSQUARE", "variable");
+						$$ = new SymbolInfo("ID LSQUARE expression RSQUARE", "variable");
 			$$->setStartLine($1->getStartLine());
 			$$->setEndLine($4->getEndLine());
 			$$->addChild($1);
@@ -1249,21 +1185,17 @@ variable : ID {
 
 			/*
 			if(!look) {
-				fprintf(errorout, "Line# %d: Undeclared variable '%s'\n", $1->getStartLine(), $1->getName().c_str());
-				syntaxErrorCount++;
+								syntaxErrorCount++;
 				$$->setTypeSpecifier("error");
 			}
 			else if(look->getIsArray() == false) {
-				fprintf(errorout, "Line# %d: '%s' is not an array\n", $1->getStartLine(), $1->getName().c_str());
-				syntaxErrorCount++;
+								syntaxErrorCount++;
 				$$->setTypeSpecifier("error");
 			} else if(look->getIsFunction() == true) {
-				fprintf(errorout, "Line# %d: '%s' is a function\n", $1->getStartLine(), $1->getName().c_str());
-				syntaxErrorCount++;
+								syntaxErrorCount++;
 				$$->setTypeSpecifier("error");
 			} else if($3->getTypeSpecifier() != "INT" && $3->getTypeSpecifier()!= "CONST_INT") {
-				fprintf(errorout, "Line# %d: Array subscript is not an integer\n", $1->getStartLine());
-				syntaxErrorCount++;
+								syntaxErrorCount++;
 				$$->setTypeSpecifier("error");
 			} else {
 				$$->setTypeSpecifier(look->getTypeSpecifier());
@@ -1275,8 +1207,7 @@ variable : ID {
 	 ;
 	 
 expression : logic_expression {
-			fprintf(logout,"expression : logic_expression \n");
-			$$ = new SymbolInfo("logic_expression", "expression");
+						$$ = new SymbolInfo("logic_expression", "expression");
 			$$->setStartLine($1->getStartLine());
 			$$->setEndLine($1->getEndLine());
 			$$->addChild($1);
@@ -1297,8 +1228,7 @@ expression : logic_expression {
 			expr = $$;
 		}	
 	   | variable ASSIGNOP logic_expression	{
-			fprintf(logout,"expression : variable ASSIGNOP logic_expression \n");
-			$$ = new SymbolInfo("variable ASSIGNOP logic_expression", "expression");
+						$$ = new SymbolInfo("variable ASSIGNOP logic_expression", "expression");
 			$$->setStartLine($1->getStartLine());
 			$$->setEndLine($3->getEndLine());
 			$$->addChild($1);
@@ -1349,8 +1279,7 @@ expression : logic_expression {
 	   ;
 			
 logic_expression : rel_expression {
-			fprintf(logout,"logic_expression : rel_expression \n");
-			$$ = new SymbolInfo("rel_expression", "logic_expression");
+						$$ = new SymbolInfo("rel_expression", "logic_expression");
 			$$->setStartLine($1->getStartLine());
 			$$->setEndLine($1->getEndLine());
 			$$->addChild($1);
@@ -1370,8 +1299,7 @@ logic_expression : rel_expression {
 
 		}		
 		 | rel_expression LOGICOP { determineJumpForLogicalOp($1);} Marker rel_expression {
-			fprintf(logout,"logic_expression : rel_expression LOGICOP rel_expression \n");
-			$$ = new SymbolInfo("rel_expression LOGICOP rel_expression", "logic_expression");
+						$$ = new SymbolInfo("rel_expression LOGICOP rel_expression", "logic_expression");
 			$$->setStartLine($1->getStartLine());
 			$$->setEndLine(relExp2->getEndLine());
 			$$->addChild($1);
@@ -1385,8 +1313,7 @@ logic_expression : rel_expression {
 			// $$->setTypeSpecifier(castType($1,$3));
 			// if($$->getTypeSpecifier() != "error") {
 			// 	if($$->getTypeSpecifier() == "VOID") {
-			// 	fprintf(errorout, "Line# %d: Void cannot be used in expression \n", $1->getStartLine());
-			// 	syntaxErrorCount++;
+			// 				// 	syntaxErrorCount++;
 			// 	$$->setTypeSpecifier("error");
 			// 	} else {
 			// 		if($$->getTypeSpecifier() != "error") {
@@ -1447,8 +1374,7 @@ logic_expression : rel_expression {
 		 ;
 			
 rel_expression	: simple_expression {
-			fprintf(logout,"rel_expression : simple_expression \n");
-			$$ = new SymbolInfo("simple_expression", "rel_expression");
+						$$ = new SymbolInfo("simple_expression", "rel_expression");
 			$$->setStartLine($1->getStartLine());
 			$$->setEndLine($1->getEndLine());
 			$$->addChild($1);
@@ -1469,8 +1395,7 @@ rel_expression	: simple_expression {
   			$$->setNextList($1->getNextList());
 		}
 		| simple_expression RELOP simple_expression	{
-			fprintf(logout,"rel_expression : simple_expression RELOP simple_expression \n");
-			$$ = new SymbolInfo("simple_expression RELOP simple_expression", "rel_expression");
+						$$ = new SymbolInfo("simple_expression RELOP simple_expression", "rel_expression");
 			$$->setStartLine($1->getStartLine());
 			$$->setEndLine($3->getEndLine());
 			$$->addChild($1);
@@ -1482,8 +1407,7 @@ rel_expression	: simple_expression {
 			// $$->setTypeSpecifier(castType($1,$3));
 			// if($$->getTypeSpecifier() != "error") {
 			// 	if($$->getTypeSpecifier() == "VOID") {
-			// 	fprintf(errorout, "Line# %d: Void cannot be used in expression \n", $1->getStartLine());
-			// 	syntaxErrorCount++;
+			// 				// 	syntaxErrorCount++;
 			// 	$$->setTypeSpecifier("error");
 			// 	} else {
 			// 		if($$->getTypeSpecifier() != "error") {
@@ -1508,8 +1432,7 @@ rel_expression	: simple_expression {
 		;
 				
 simple_expression : term {
-			fprintf(logout,"simple_expression : term \n");
-			$$ = new SymbolInfo("term", "simple_expression");
+						$$ = new SymbolInfo("term", "simple_expression");
 			$$->setStartLine($1->getStartLine());
 			$$->setEndLine($1->getEndLine());
 			$$->addChild($1);
@@ -1528,8 +1451,7 @@ simple_expression : term {
   			$$->setNextList($1->getNextList());
 		}
 		  | simple_expression ADDOP term {
-			fprintf(logout,"simple_expression : simple_expression ADDOP term \n");
-			$$ = new SymbolInfo("simple_expression ADDOP term", "simple_expression");
+						$$ = new SymbolInfo("simple_expression ADDOP term", "simple_expression");
 			$$->setStartLine($1->getStartLine());
 			$$->setEndLine($3->getEndLine());
 			$$->addChild($1);
@@ -1538,8 +1460,7 @@ simple_expression : term {
 
 			// if($1->getTypeSpecifier() != "error" && $3->getTypeSpecifier() != "error") {
 			// 	if($1->getTypeSpecifier() == "VOID" || $3->getTypeSpecifier() == "VOID") {
-			// 	fprintf(errorout, "Line# %d: Void cannot be used in expression \n", $2->getStartLine());
-			// 	syntaxErrorCount++;
+			// 				// 	syntaxErrorCount++;
 			// 	// will handle in expression which can't be void
 			// 	$$->setTypeSpecifier("error");
 			// 	}
@@ -1561,8 +1482,7 @@ simple_expression : term {
 		  ;
 
 term : unary_expression {
-			fprintf(logout,"term : unary_expression \n");
-			$$ = new SymbolInfo("unary_expression", "term");
+						$$ = new SymbolInfo("unary_expression", "term");
 			$$->setStartLine($1->getStartLine());
 			$$->setEndLine($1->getEndLine());
 			$$->addChild($1);
@@ -1582,8 +1502,7 @@ term : unary_expression {
 			
 	}
     | term MULOP unary_expression {
-			fprintf(logout,"term : term MULOP unary_expression \n");
-			$$ = new SymbolInfo("term MULOP unary_expression", "term");
+						$$ = new SymbolInfo("term MULOP unary_expression", "term");
 			$$->setStartLine($1->getStartLine());
 			$$->setEndLine($3->getEndLine());
 			$$->addChild($1);
@@ -1594,28 +1513,23 @@ term : unary_expression {
 
 			// if($1->getTypeSpecifier() != "error" && $3->getTypeSpecifier() != "error") {
 			// 	if($1->getTypeSpecifier() == "VOID" || $3->getTypeSpecifier() == "VOID") {
-			// 	fprintf(errorout, "Line# %d: Void cannot be used in expression \n", $2->getStartLine());
-			// 	syntaxErrorCount++;
+			// 				// 	syntaxErrorCount++;
 			// 	// will handle in expression which can't be void
 			// 	string type = "error";
 			// 	$$->setTypeSpecifier(type);
 			// 	} else if(($1->getIsArray() && $1->getIsArrayWithoutIndex()) || ($3->getIsArray() && $3->getIsArrayWithoutIndex())) {
-			// 		fprintf(errorout, "Line# %d: Array without index in '%s' operation  \n", $2->getStartLine(), $2->getName().c_str());
-			// 		syntaxErrorCount++;
+			// 					// 		syntaxErrorCount++;
 			// 		$$->setTypeSpecifier("error");
 			// 	} else {
 			// 		$$->setTypeSpecifier(castType($1,$3));
 			// 		if($$->getTypeSpecifier() == "error") {
-			// 			fprintf(errorout, "Line# %d: Incompatible types in expression\n", $2->getStartLine());
-			// 			syntaxErrorCount++;
+			// 						// 			syntaxErrorCount++;
 			// 		} else {
 			// 			if($2->getName() == "%" && $$->getTypeSpecifier() != "INT") {
-			// 				fprintf(errorout, "Line# %d: Operands of modulus must be integers \n", $2->getStartLine());
-			// 				syntaxErrorCount++;
+			// 							// 				syntaxErrorCount++;
 			// 				$$->setTypeSpecifier("error");
 			// 		} else if($$->getIsFromConstant() && (($2->getName() == "%" || $2->getName() == "/") && (($3->getConstantIntValue() == "0") || ($3->getConstantFloatValue() == "0.0")))) {
-			// 				fprintf(errorout, "Line# %d: Warning: division by zero \n", $2->getStartLine());
-			// 				syntaxErrorCount++;
+			// 							// 				syntaxErrorCount++;
 			// 				$$->setTypeSpecifier("error");
 			// 			} 
 			// 		}
@@ -1642,8 +1556,7 @@ term : unary_expression {
      ;
 
 unary_expression : ADDOP unary_expression {
-			fprintf(logout,"unary_expression : ADDOP unary_expression \n");
-			$$ = new SymbolInfo("ADDOP unary_expression", "unary_expression");
+						$$ = new SymbolInfo("ADDOP unary_expression", "unary_expression");
 			$$->setStartLine($1->getStartLine());
 			$$->setEndLine($2->getEndLine());
 			$$->addChild($1);
@@ -1652,8 +1565,7 @@ unary_expression : ADDOP unary_expression {
 
 			if($2->getTypeSpecifier() != "error") {
 				if($2->getTypeSpecifier() == "VOID") {
-				fprintf(errorout, "Line# %d: Operand of '%s' is void\n", $1->getStartLine(), $1->getName().c_str());
-				syntaxErrorCount++;
+								syntaxErrorCount++;
 				$$->setTypeSpecifier("error");
 				} else {
 					$$->setTypeSpecifier($2->getTypeSpecifier());
@@ -1668,8 +1580,7 @@ unary_expression : ADDOP unary_expression {
 			writeIntoTempFile("\tPUSH AX");
 		}
 		 | NOT unary_expression {
-			fprintf(logout,"unary_expression : NOT unary_expression \n");
-			$$ = new SymbolInfo("NOT unary_expression", "unary_expression");
+						$$ = new SymbolInfo("NOT unary_expression", "unary_expression");
 			$$->setStartLine($1->getStartLine());
 			$$->setEndLine($2->getEndLine());
 			$$->addChild($1);
@@ -1677,8 +1588,7 @@ unary_expression : ADDOP unary_expression {
 
 			// if($2->getTypeSpecifier() != "error") {
 			// 	if($2->getTypeSpecifier() != "INT") {
-			// 	fprintf(errorout, "Line# %d: Operand of '!' is not an integer\n", $1->getStartLine());
-			// 	syntaxErrorCount++;
+			// 				// 	syntaxErrorCount++;
 			// 	$$->setTypeSpecifier("error");
 			// 	} else {
 			// 		$$->setTypeSpecifier("INT");
@@ -1716,8 +1626,7 @@ unary_expression : ADDOP unary_expression {
 
 		 }
 		 | factor {
-			fprintf(logout,"unary_expression : factor \n");
-			$$ = new SymbolInfo("factor", "unary_expression");
+						$$ = new SymbolInfo("factor", "unary_expression");
 			$$->setStartLine($1->getStartLine());
 			$$->setEndLine($1->getEndLine());
 			$$->addChild($1);
@@ -1740,8 +1649,7 @@ unary_expression : ADDOP unary_expression {
 		 ;
 	
 factor	: variable {
-			fprintf(logout,"factor : variable \n");
-			$$ = new SymbolInfo("variable", "factor");
+						$$ = new SymbolInfo("variable", "factor");
 			$$->setStartLine($1->getStartLine());
 			$$->setEndLine($1->getEndLine());
 			$$->addChild($1);
@@ -1757,8 +1665,7 @@ factor	: variable {
 	}
 	| ID LPAREN argument_list RPAREN {
 		// try after implementing function
-			fprintf(logout,"factor : ID LPAREN argument_list RPAREN \n");
-			$$ = new SymbolInfo("ID LPAREN argument_list RPAREN", "factor");
+						$$ = new SymbolInfo("ID LPAREN argument_list RPAREN", "factor");
 			$$->setStartLine($1->getStartLine());
 			$$->setEndLine($4->getEndLine());
 			$$->addChild($1);
@@ -1768,13 +1675,11 @@ factor	: variable {
 
 			SymbolInfo* lookUp = st.lookUp($1->getName());
 			if(lookUp == NULL) {
-				fprintf(errorout, "Line# %d: Undeclared function '%s'\n", $1->getStartLine(), $1->getName().c_str());
-				syntaxErrorCount++;
+								syntaxErrorCount++;
 				$$->setTypeSpecifier("error");
 			} else {
 				if(lookUp->getIsFunction() == false) {
-					fprintf(errorout, "Line# %d: '%s' is not a function\n", $1->getStartLine(), $1->getName().c_str());
-					syntaxErrorCount++;
+										syntaxErrorCount++;
 					$$->setTypeSpecifier("error");
 				} else {
 					// check number of arguments and type
@@ -1782,13 +1687,11 @@ factor	: variable {
 					int nParameters = lookUp->getParameterTypeList().size();
 
 					if(nArguments < nParameters) {
-						fprintf(errorout, "Line# %d: Too few arguments to function '%s'\n", $1->getStartLine(), $1->getName().c_str());
-						syntaxErrorCount++;
+												syntaxErrorCount++;
 						$$->setTypeSpecifier("error");
 
 					} else if(nArguments > nParameters) {
-						fprintf(errorout, "Line# %d: Too many arguments to function '%s'\n", $1->getStartLine(), $1->getName().c_str());
-						syntaxErrorCount++;
+												syntaxErrorCount++;
 						$$->setTypeSpecifier("error");						
 					} else {
 						if(nParameters != 0) {
@@ -1796,8 +1699,7 @@ factor	: variable {
 							bool isTypeMatch = true;
 							for(int i = 0; i < nParameters; i++) {
 								if($3->getParameterTypeList()[i] != lookUp->getParameterTypeList()[i]) {
-									fprintf(errorout, "Line# %d: Type mismatch for argument %d of '%s'\n", $1->getStartLine(), (i+1), $1->getName().c_str());
-									// fprintf(errorout, "Line# %d: Type func def '%s' ,  type arg '%s' argNo- %d\n", $1->getStartLine(), 
+																		// fprintf(errorout, "Line# %d: Type func def '%s' ,  type arg '%s' argNo- %d\n", $1->getStartLine(), 
 									// $3->getParameterTypeList()[i].c_str(), lookUp->getParameterTypeList()[i].c_str(), $1->getName().c_str());
 									syntaxErrorCount++;
 									$$->setTypeSpecifier("error");
@@ -1818,8 +1720,7 @@ factor	: variable {
 			writeIntoTempFile("\tPUSH AX");
 	}
 	| LPAREN expression RPAREN {
-			fprintf(logout,"factor : LPAREN expression RPAREN \n");
-			$$ = new SymbolInfo("LPAREN expression RPAREN", "factor");
+						$$ = new SymbolInfo("LPAREN expression RPAREN", "factor");
 			$$->setStartLine($1->getStartLine());
 			$$->setEndLine($3->getEndLine());
 			$$->addChild($1);
@@ -1838,8 +1739,7 @@ factor	: variable {
 			evaluateBooleanExpression($2);
 	}
 	| CONST_INT {
-			fprintf(logout,"factor : CONST_INT \n");
-			$$ = new SymbolInfo("CONST_INT", "factor");
+						$$ = new SymbolInfo("CONST_INT", "factor");
 			$$->setStartLine($1->getStartLine());
 			$$->setEndLine($1->getEndLine());
 			$$->addChild($1);
@@ -1853,8 +1753,7 @@ factor	: variable {
 			writeIntoTempFile("\tPUSH AX");
 	}
 	| CONST_FLOAT {
-			fprintf(logout,"factor : CONST_FLOAT \n");
-			$$ = new SymbolInfo("CONST_FLOAT", "factor");
+						$$ = new SymbolInfo("CONST_FLOAT", "factor");
 			$$->setStartLine($1->getStartLine());
 			$$->setEndLine($1->getEndLine());
 			$$->addChild($1);
@@ -1865,8 +1764,7 @@ factor	: variable {
 			$$->setConstantFloatValue($1->getName());
 	}
 	| variable INCOP {
-			fprintf(logout,"factor : variable INCOP \n");
-			$$ = new SymbolInfo("variable INCOP", "factor");
+						$$ = new SymbolInfo("variable INCOP", "factor");
 			$$->setStartLine($1->getStartLine());
 			$$->setEndLine($2->getEndLine());
 			$$->addChild($1);
@@ -1875,8 +1773,7 @@ factor	: variable {
 			if($1->getTypeSpecifier() == "INT") {
 				$$->setTypeSpecifier($1->getTypeSpecifier());
 			} else {
-				fprintf(errorout, "Line# %d: Invalid type for increment/decrement operator\n", $1->getStartLine());
-				syntaxErrorCount++;
+								syntaxErrorCount++;
 				$$->setTypeSpecifier("error");
 			}
 
@@ -1892,8 +1789,7 @@ factor	: variable {
 			
 	}
 	| variable DECOP {
-			fprintf(logout,"factor : variable DECOP \n");
-			$$ = new SymbolInfo("variable DECOP", "factor");
+						$$ = new SymbolInfo("variable DECOP", "factor");
 			$$->setStartLine($1->getStartLine());
 			$$->setEndLine($2->getEndLine());
 			$$->addChild($1);
@@ -1902,8 +1798,7 @@ factor	: variable {
 			if($1->getTypeSpecifier() == "INT") {
 				$$->setTypeSpecifier($1->getTypeSpecifier());
 			} else {
-				fprintf(errorout, "Line# %d: Invalid type for increment/decrement operator\n", $1->getStartLine());
-				syntaxErrorCount++;
+								syntaxErrorCount++;
 				$$->setTypeSpecifier("error");
 			}
 			
@@ -1919,8 +1814,7 @@ factor	: variable {
 	;
 	
 argument_list : arguments {
-				fprintf(logout,"argument_list : arguments \n");
-				$$ = new SymbolInfo("arguments", "argument_list");
+								$$ = new SymbolInfo("arguments", "argument_list");
 				$$->setStartLine($1->getStartLine());
 				$$->setEndLine($1->getEndLine());
 				$$->addChild($1);
@@ -1928,8 +1822,7 @@ argument_list : arguments {
 				$$->setParameterTypeList($1->getParameterTypeList());
 			}
 			| {
-				fprintf(logout,"argument_list : \n");
-				$$ = new SymbolInfo("", "argument_list");
+								$$ = new SymbolInfo("", "argument_list");
 				$$->setStartLine(yylineno);
 				$$->setEndLine(yylineno);
 				
@@ -1939,8 +1832,7 @@ argument_list : arguments {
 			  ;
 	
 arguments : arguments COMMA logic_expression {
-			fprintf(logout,"arguments : arguments COMMA logic_expression \n");
-			$$ = new SymbolInfo("arguments COMMA logic_expression", "arguments");
+						$$ = new SymbolInfo("arguments COMMA logic_expression", "arguments");
 			$$->setStartLine($1->getStartLine());
 			$$->setEndLine($3->getEndLine());
 			$$->addChild($1);
@@ -1951,8 +1843,7 @@ arguments : arguments COMMA logic_expression {
 			$$->addParameterType($3->getTypeSpecifier());
 		}
 	      | logic_expression {
-			fprintf(logout,"arguments : logic_expression \n");
-			$$ = new SymbolInfo("logic_expression", "arguments");
+						$$ = new SymbolInfo("logic_expression", "arguments");
 			$$->setStartLine($1->getStartLine());
 			$$->setEndLine($1->getEndLine());
 			$$->addChild($1);
@@ -1982,8 +1873,7 @@ LCURL_ : LCURL {
 		bool inserted = st.insert(name, type);
 		
 		if( !inserted ){
-			fprintf(errorout, "Line# %d: Redefinition of parameter '%s'\n", $1->getStartLine(), name.c_str());
-			syntaxErrorCount++;
+						syntaxErrorCount++;
 			break;
 		} else {
 			SymbolInfo *look = st.lookUp(name);
@@ -2029,9 +1919,7 @@ int main(int argc,char *argv[])
 	yyin=fp;
 	yyparse();
 	
-	fprintf(logout, "Total Lines: %d\n", yylineno);
-	fprintf(logout, "Total Errors: %d\n", syntaxErrorCount + error_count);
-
+		
 	fclose(logout);
 	fclose(errorout);
 	fclose(ptout);
