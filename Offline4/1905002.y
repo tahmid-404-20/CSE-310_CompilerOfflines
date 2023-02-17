@@ -871,11 +871,7 @@ statement : var_declaration {
 			insertIntoLabelMap($5->getTrueList(), $7->getLabel());
 			insertIntoLabelMap($12->getNextList(), $4->getLabel());
 			insertIntoLabelMap($8->getNextList(), $14->getLabel());
-
-			for(int i=0;i< $5->getTrueList().size(); i++) {
-							}
-			for(int i=0;i< $12->getTrueList().size(); i++) {
-							}
+			insertIntoLabelMap($15->getNextList(), $9->getLabel());
 
 			$$->setNextList($5->getFalseList());
 
@@ -901,7 +897,7 @@ statement : var_declaration {
 			
 	  }
 	  | IF LPAREN expression RPAREN non_boolean_if Marker statement ELSE Jumper Marker statement {
-						$$ = new SymbolInfo("IF LPAREN expression RPAREN statement ELSE statement", "statement");
+			$$ = new SymbolInfo("IF LPAREN expression RPAREN statement ELSE statement", "statement");
 			$$->setStartLine($1->getStartLine());
 			$$->setEndLine($7->getEndLine());
 			$$->addChild($1);
