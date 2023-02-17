@@ -347,17 +347,7 @@ start : program
 		clearMemSyntaxTree($$);
 		$$ = NULL;
 		compRef = NULL;
-
-		fprintf(codeout, "%s", headString.c_str());
-		for(int i=0;i<globalVarList.size();i++){
-			if(globalVarList[i] -> getIsArray()) {
-				fprintf(codeout, "\t%s DW %d %s", globalVarList[i]-> getName().c_str(), globalVarList[i]->getArraySize(), globalVarDescription.c_str());
-			} else {
-				fprintf(codeout, "\t%s DW 1 %s", globalVarList[i]-> getName().c_str(),  globalVarDescription.c_str());
-			}
-			
-			delete globalVarList[i];
-		}
+		
 
 		fprintf(codeout, ".CODE\n");
 
@@ -691,6 +681,17 @@ var_declaration : type_specifier declaration_list SEMICOLON {
 
 				if(st.getCurrentScopeTableId() != 1) {
 					writeIntoTempFile("\tSUB SP, " +  to_string(stackOffset));
+				} else {
+					for(int i=0;i<globalVarList.size();i++){
+						if(globalVarList[i] -> getIsArray()) {
+							fprintf(codeout, "\t%s DW %d %s", globalVarList[i]-> getName().c_str(), globalVarList[i]->getArraySize(), globalVarDescription.c_str());
+						} else {
+							fprintf(codeout, "\t%s DW 1 %s", globalVarList[i]-> getName().c_str(),  globalVarDescription.c_str());
+						}
+						
+						delete globalVarList[i];
+					}
+					globalVarList.clear();
 				}
 			}
 		}
@@ -1893,6 +1894,7 @@ int main(int argc,char *argv[])
 	tempout = fopen("1905002_tempCode.txt","w");
 
 	/* yylineno = 1; */
+	fprintf(codeout, "%s", headString.c_str());
 	yyin=fp;
 	yyparse();
 	
