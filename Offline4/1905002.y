@@ -670,18 +670,18 @@ var_declaration : type_specifier declaration_list SEMICOLON {
 								look->setStackOffset(stackOffset+2); // a[0] at BP-2, a[1] at BP-4, a[2] at BP-6, etc.
 								stackOffset += look->getArraySize()*2;
 								// fprintf(tempout, "\tSUB SP, %d\n", look->getArraySize()*2);
+								writeIntoTempFile("\tSUB SP, " + to_string(look->getArraySize()*2));
 							} else {
 								stackOffset += 2;
 								// fprintf(tempout, "\tSUB SP, 2\n");
+								writeIntoTempFile("\tSUB SP, 2");
 								look->setStackOffset(stackOffset);
 							}					
 						}
 					}
 				}
 
-				if(st.getCurrentScopeTableId() != 1) {
-					writeIntoTempFile("\tSUB SP, " +  to_string(stackOffset));
-				} else {
+				if(st.getCurrentScopeTableId() == 1) {
 					for(int i=0;i<globalVarList.size();i++){
 						if(globalVarList[i] -> getIsArray()) {
 							fprintf(codeout, "\t%s DW %d %s", globalVarList[i]-> getName().c_str(), globalVarList[i]->getArraySize(), globalVarDescription.c_str());
@@ -789,16 +789,20 @@ declaration_list : declaration_list COMMA ID {
 		  }
  		  ;
  		  
-statements : statement {
+statements : statement Marker{
 						$$ = new SymbolInfo("statement", "statements");
 			$$->setStartLine($1->getStartLine());
 			$$->setEndLine($1->getEndLine());
 			$$->addChild($1);
+			$$->addChild($2);
+
 
 			$$->setNextList($1->getNextList());
+			insertIntoLabelMap($1->getNextList(), $2->getLabel());
+
 }      
 	   | statements Marker statement {
-						$$ = new SymbolInfo("statements statement", "statements");
+			$$ = new SymbolInfo("statements statement", "statements");
 			$$->setStartLine($1->getStartLine());
 			$$->setEndLine($2->getEndLine());
 			$$->addChild($1);
@@ -1022,21 +1026,7 @@ statement : var_declaration {
 			$$->addChild($1);
 			$$->addChild($2);
 			$$->addChild($3);
-			
-			
-			// return type checking
-			string type = $2->getTypeSpecifier();
-			if(type == "VOID"){
-								syntaxErrorCount++;
-			} else if(funcReturnType == "VOID") {
-								syntaxErrorCount++;
-			} else if(funcReturnType == "FLOAT" && type == "INT") {
-				// ok
-			} else {
-				if(funcReturnType != type) {
-										syntaxErrorCount++;
-				}
-			}
+
 
 			// icg code
 			writeIntoTempFile("; Line no: " + to_string($1->getStartLine()) + " -> in return");
@@ -1078,7 +1068,7 @@ expression_statement 	: SEMICOLON	{
 			;
 	  
 variable : ID {
-						$$ = new SymbolInfo("ID", "variable");
+			$$ = new SymbolInfo("ID", "variable");
 			$$->setStartLine($1->getStartLine());
 			$$->setEndLine($1->getEndLine());
 			$$->addChild($1);
@@ -1437,7 +1427,7 @@ simple_expression : term {
 		  | simple_expression ADDOP {evaluateBooleanExpression($1);} term {evaluateBooleanExpression($4);} {
 			$$ = new SymbolInfo("simple_expression ADDOP term", "simple_expression");
 			$$->setStartLine($1->getStartLine());
-			$$->setEndLine($3->getEndLine());
+			$$->setEndLine($4->getEndLine());
 			$$->addChild($1);
 			$$->addChild($2);
 			$$->addChild($4);
@@ -1477,7 +1467,7 @@ term : unary_expression {
     | term MULOP {evaluateBooleanExpression($1);} unary_expression {evaluateBooleanExpression($4);}{
 						$$ = new SymbolInfo("term MULOP unary_expression", "term");
 			$$->setStartLine($1->getStartLine());
-			$$->setEndLine($3->getEndLine());
+			$$->setEndLine($4->getEndLine());
 			$$->addChild($1);
 			$$->addChild($2);
 			$$->addChild($4);
@@ -1501,6 +1491,8 @@ term : unary_expression {
 
 unary_expression : ADDOP unary_expression {evaluateBooleanExpression($2);} {
 			$$ = new SymbolInfo("ADDOP unary_expression", "unary_expression");
+			$$->setStartLine($1->getStartLine());
+			$$->setEndLine($2->getEndLine());
 			$$->addChild($1);
 			$$->addChild($2);
 
@@ -1512,7 +1504,7 @@ unary_expression : ADDOP unary_expression {evaluateBooleanExpression($2);} {
 			writeIntoTempFile("\tPUSH AX");
 		}
 		 | NOT unary_expression {
-						$$ = new SymbolInfo("NOT unary_expression", "unary_expression");
+			$$ = new SymbolInfo("NOT unary_expression", "unary_expression");
 			$$->setStartLine($1->getStartLine());
 			$$->setEndLine($2->getEndLine());
 			$$->addChild($1);
