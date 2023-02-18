@@ -1434,24 +1434,13 @@ simple_expression : term {
   			$$->setFalseList($1->getFalseList());
   			$$->setNextList($1->getNextList());
 		}
-		  | simple_expression ADDOP term {
-						$$ = new SymbolInfo("simple_expression ADDOP term", "simple_expression");
+		  | simple_expression ADDOP {evaluateBooleanExpression($1);} term {evaluateBooleanExpression($4);} {
+			$$ = new SymbolInfo("simple_expression ADDOP term", "simple_expression");
 			$$->setStartLine($1->getStartLine());
 			$$->setEndLine($3->getEndLine());
 			$$->addChild($1);
 			$$->addChild($2);
-			$$->addChild($3);
-
-			// if($1->getTypeSpecifier() != "error" && $3->getTypeSpecifier() != "error") {
-			// 	if($1->getTypeSpecifier() == "VOID" || $3->getTypeSpecifier() == "VOID") {
-			// 				// 	syntaxErrorCount++;
-			// 	// will handle in expression which can't be void
-			// 	$$->setTypeSpecifier("error");
-			// 	}
-			// 	$$->setTypeSpecifier(castType($1,$3));
-			// } else {
-			// 	$$->setTypeSpecifier("error");
-			// }
+			$$->addChild($4);
 
 			writeIntoTempFile("; Line no " + to_string($1->getStartLine()));
 			writeIntoTempFile("\tPOP BX");
@@ -1466,7 +1455,7 @@ simple_expression : term {
 		  ;
 
 term : unary_expression {
-						$$ = new SymbolInfo("unary_expression", "term");
+			$$ = new SymbolInfo("unary_expression", "term");
 			$$->setStartLine($1->getStartLine());
 			$$->setEndLine($1->getEndLine());
 			$$->addChild($1);
@@ -1485,42 +1474,13 @@ term : unary_expression {
   			$$->setNextList($1->getNextList());		
 			
 	}
-    | term MULOP unary_expression {
+    | term MULOP {evaluateBooleanExpression($1);} unary_expression {evaluateBooleanExpression($4);}{
 						$$ = new SymbolInfo("term MULOP unary_expression", "term");
 			$$->setStartLine($1->getStartLine());
 			$$->setEndLine($3->getEndLine());
 			$$->addChild($1);
 			$$->addChild($2);
-			$$->addChild($3);
-
-			// $$->setIsFromConstant($3->getIsFromConstant());
-
-			// if($1->getTypeSpecifier() != "error" && $3->getTypeSpecifier() != "error") {
-			// 	if($1->getTypeSpecifier() == "VOID" || $3->getTypeSpecifier() == "VOID") {
-			// 				// 	syntaxErrorCount++;
-			// 	// will handle in expression which can't be void
-			// 	string type = "error";
-			// 	$$->setTypeSpecifier(type);
-			// 	} else if(($1->getIsArray() && $1->getIsArrayWithoutIndex()) || ($3->getIsArray() && $3->getIsArrayWithoutIndex())) {
-			// 					// 		syntaxErrorCount++;
-			// 		$$->setTypeSpecifier("error");
-			// 	} else {
-			// 		$$->setTypeSpecifier(castType($1,$3));
-			// 		if($$->getTypeSpecifier() == "error") {
-			// 						// 			syntaxErrorCount++;
-			// 		} else {
-			// 			if($2->getName() == "%" && $$->getTypeSpecifier() != "INT") {
-			// 							// 				syntaxErrorCount++;
-			// 				$$->setTypeSpecifier("error");
-			// 		} else if($$->getIsFromConstant() && (($2->getName() == "%" || $2->getName() == "/") && (($3->getConstantIntValue() == "0") || ($3->getConstantFloatValue() == "0.0")))) {
-			// 							// 				syntaxErrorCount++;
-			// 				$$->setTypeSpecifier("error");
-			// 			} 
-			// 		}
-			// 	}
-			// } else {
-			// 	$$->setTypeSpecifier("error");
-			// }		
+			$$->addChild($4);
 
 			writeIntoTempFile("; Line no " + to_string($1->getStartLine()));
 			writeIntoTempFile("\tPOP BX");
@@ -1539,22 +1499,10 @@ term : unary_expression {
 	 }
      ;
 
-unary_expression : ADDOP unary_expression {
-						$$ = new SymbolInfo("ADDOP unary_expression", "unary_expression");
-			$$->setStartLine($1->getStartLine());
-			$$->setEndLine($2->getEndLine());
+unary_expression : ADDOP unary_expression {evaluateBooleanExpression($2);} {
+			$$ = new SymbolInfo("ADDOP unary_expression", "unary_expression");
 			$$->addChild($1);
 			$$->addChild($2);
-
-
-			if($2->getTypeSpecifier() != "error") {
-				if($2->getTypeSpecifier() == "VOID") {
-								syntaxErrorCount++;
-				$$->setTypeSpecifier("error");
-				} else {
-					$$->setTypeSpecifier($2->getTypeSpecifier());
-				}
-			}
 
 			writeIntoTempFile("; Line no " + to_string($1->getStartLine()));
 			writeIntoTempFile("\tPOP AX");
@@ -1569,17 +1517,6 @@ unary_expression : ADDOP unary_expression {
 			$$->setEndLine($2->getEndLine());
 			$$->addChild($1);
 			$$->addChild($2);
-
-			// if($2->getTypeSpecifier() != "error") {
-			// 	if($2->getTypeSpecifier() != "INT") {
-			// 				// 	syntaxErrorCount++;
-			// 	$$->setTypeSpecifier("error");
-			// 	} else {
-			// 		$$->setTypeSpecifier("INT");
-			// 	}
-			// } else {
-			// 	$$->setTypeSpecifier("error");
-			// }
 
 			if($2->getIsBoolean()) {
 				writeIntoTempFile("; Line no " + to_string($1->getStartLine()) + " NOT operator");
@@ -1713,12 +1650,11 @@ factor	: variable {
 
 			$$->setTypeSpecifier($2->getTypeSpecifier());
 
-			// $$->setIsBoolean($2->getIsBoolean());
-  			// $$->setTrueList($2->getTrueList());
-  			// $$->setFalseList($2->getFalseList());
-  			// $$->setNextList($2->getNextList());
+			$$->setIsBoolean($2->getIsBoolean());
+  			$$->setTrueList($2->getTrueList());
+  			$$->setFalseList($2->getFalseList());
+  			$$->setNextList($2->getNextList());
 
-			evaluateBooleanExpression($2);
 	}
 	| CONST_INT {
 						$$ = new SymbolInfo("CONST_INT", "factor");
