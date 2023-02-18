@@ -462,7 +462,8 @@ func_definition : type_specifier ID LPAREN parameter_list RPAREN {insertFunction
 			$$->addChild(compRef);	
 
 			writeIntoTempFile(funcReturnLabel + ":");
-			writeIntoTempFile("\tADD SP, " + to_string(stackOffset));
+			// writeIntoTempFile("\tADD SP, " + to_string(stackOffset));
+			writeIntoTempFile("\tMOV SP, BP");
 			writeIntoTempFile("\tPOP BP");
 			
 			if($2->getName() == "main"){
@@ -489,8 +490,10 @@ func_definition : type_specifier ID LPAREN parameter_list RPAREN {insertFunction
 			$$->addChild(compRef);
 
 			writeIntoTempFile(funcReturnLabel + ":");
-			writeIntoTempFile("\tADD SP, " + to_string(stackOffset));
+			// writeIntoTempFile("\tADD SP, " + to_string(stackOffset));
+			writeIntoTempFile("\tMOV SP, BP");
 			writeIntoTempFile("\tPOP BP");
+			
 			if($2->getName() == "main"){
 				writeIntoTempFile("\tMOV AX,4CH");
 				writeIntoTempFile("\tINT 21H");					
