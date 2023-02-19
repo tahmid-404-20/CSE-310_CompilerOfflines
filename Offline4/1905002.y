@@ -837,28 +837,34 @@ non_boolean_if: {
 		}
 
 statement : var_declaration {
-						$$ = new SymbolInfo("var_declaration", "statement");
+			$$ = new SymbolInfo("var_declaration", "statement");
 			$$->setStartLine($1->getStartLine());
 			$$->setEndLine($1->getEndLine());
 			$$->addChild($1);
+
+			$$->setNextList($1->getNextList());
 
 	}
 	  | expression_statement {
-						$$ = new SymbolInfo("expression_statement", "statement");
+			$$ = new SymbolInfo("expression_statement", "statement");
 			$$->setStartLine($1->getStartLine());
 			$$->setEndLine($1->getEndLine());
 			$$->addChild($1);
+
+			$$->setNextList($1->getNextList());
 
 	  }
 	  | compound_statement {
-						$$ = new SymbolInfo("compound_statement", "statement");
+			$$ = new SymbolInfo("compound_statement", "statement");
 			$$->setStartLine($1->getStartLine());
 			$$->setEndLine($1->getEndLine());
 			$$->addChild($1);
 
+  			$$->setNextList($1->getNextList());
+
 	  }
 	  | FOR LPAREN expression_statement Marker expression_statement {writeForNonBooleanExpressions($5, false);} Marker Jumper Marker expression {writeIntoTempFile("\tPOP AX");} Jumper RPAREN Marker statement {
-						$$ = new SymbolInfo("FOR LPAREN expression_statement expression_statement expression RPAREN statement", "statement");
+			$$ = new SymbolInfo("FOR LPAREN expression_statement expression_statement expression RPAREN statement", "statement");
 			$$->setStartLine($1->getStartLine());
 			$$->setEndLine($7->getEndLine());
 			$$->addChild($1);
@@ -901,7 +907,6 @@ statement : var_declaration {
 			insertIntoLabelMap($3->getTrueList(), $6->getLabel());
 			$$->setNextList($3->getFalseList());
 			$$->mergeNextList($6->getNextList());
-
 			
 	  }
 	  | IF LPAREN expression RPAREN non_boolean_if Marker statement ELSE Jumper Marker statement {
@@ -949,7 +954,7 @@ statement : var_declaration {
 
 	  }
 	  | PRINTLN LPAREN ID RPAREN SEMICOLON {
-						$$ = new SymbolInfo("PRINTLN LPAREN ID RPAREN SEMICOLON", "statement");
+			$$ = new SymbolInfo("PRINTLN LPAREN ID RPAREN SEMICOLON", "statement");
 			$$->setStartLine($1->getStartLine());
 			$$->setEndLine($5->getEndLine());
 			$$->addChild($1);
@@ -989,11 +994,6 @@ statement : var_declaration {
 			$$->addChild($6);
 			$$->addChild($7);
 			$$->addChild($8);
-
-			// include some things later
-			if(st.lookUp($3->getName()) == NULL){
-								syntaxErrorCount++;
-			}
 
 			// icg code
 			writeIntoTempFile("; Line no: " + to_string($1->getStartLine()) + " -> in println");
@@ -1147,39 +1147,6 @@ variable : ID {
 			$$->setIsArray(true);
 			$$->setStackOffset(look->getStackOffset());
 			
-			// if(look->getIsGlobalVariable()) {
-			// 		writeIntoTempFile("\tMOV SI, AX");
-			// 		$$->setVarName(look->getName() +"[SI]");
-			// 	} 
-			// 	else{					
-			// 		int stkOffset = look->getStackOffset();
-			// 		writeIntoTempFile("\tMOV SI, BP");
-			// 		writeIntoTempFile("\tSUB SI, " + to_string(stkOffset));   // [BP - 2] means a[0]
-			// 		writeIntoTempFile("\tSHL AX, 1");
-			// 		writeIntoTempFile("\tSUB SI, AX");
-			// 		$$->setVarName("[SI]");
-			// }		
-
-			/*
-			if(!look) {
-								syntaxErrorCount++;
-				$$->setTypeSpecifier("error");
-			}
-			else if(look->getIsArray() == false) {
-								syntaxErrorCount++;
-				$$->setTypeSpecifier("error");
-			} else if(look->getIsFunction() == true) {
-								syntaxErrorCount++;
-				$$->setTypeSpecifier("error");
-			} else if($3->getTypeSpecifier() != "INT" && $3->getTypeSpecifier()!= "CONST_INT") {
-								syntaxErrorCount++;
-				$$->setTypeSpecifier("error");
-			} else {
-				$$->setTypeSpecifier(look->getTypeSpecifier());
-				$$->setIsArray(true);
-				$$->setIsArrayWithoutIndex(false);
-			} 
-			*/
 	 }
 	 ;
 	 
