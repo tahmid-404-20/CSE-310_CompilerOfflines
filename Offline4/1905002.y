@@ -710,7 +710,7 @@ var_declaration : type_specifier declaration_list SEMICOLON {
 			$$->addChild(temp);
 			$$->addChild($3);
 
-						syntaxErrorCount++;										
+			syntaxErrorCount++;										
 
 		}
  		 ;
@@ -792,16 +792,14 @@ declaration_list : declaration_list COMMA ID {
 		  }
  		  ;
  		  
-statements : statement Marker{
+statements : statement{
 						$$ = new SymbolInfo("statement", "statements");
 			$$->setStartLine($1->getStartLine());
 			$$->setEndLine($1->getEndLine());
 			$$->addChild($1);
-			$$->addChild($2);
 
 
 			$$->setNextList($1->getNextList());
-			insertIntoLabelMap($1->getNextList(), $2->getLabel());
 
 }      
 	   | statements Marker statement {
@@ -1022,13 +1020,13 @@ statement : var_declaration {
 			writeIntoTempFile("\tCALL new_line");
 
 		}
-		| RETURN expression SEMICOLON {
+		| RETURN expression  {evaluateBooleanExpression($2);}SEMICOLON {
 						$$ = new SymbolInfo("RETURN expression SEMICOLON", "statement");
 			$$->setStartLine($1->getStartLine());
-			$$->setEndLine($3->getEndLine());
+			$$->setEndLine($4->getEndLine());
 			$$->addChild($1);
 			$$->addChild($2);
-			$$->addChild($3);
+			$$->addChild($4);
 
 
 			// icg code
