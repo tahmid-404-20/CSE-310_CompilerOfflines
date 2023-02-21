@@ -72,14 +72,15 @@ void optimizeCode() {
 	string tempLine;
 	string line;
 
+	vector<string> labels;
 
   	while (getline(code, line)) {
-		if(line[0] == ';') {
+		if(line[0] == ';') {  // ignoring comments
 			continue;
 		}
 		if(line == "\tPUSH AX") {
 			getline(code, tempLine);
-			if(tempLine[0] == ';') {
+			while(tempLine[0] == ';') {
 				getline(code, tempLine);
 			}
 			if(tempLine == "\tPOP AX") {
